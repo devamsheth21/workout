@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEPTUNE">
+<title>NEPTUNE · Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0c0f;
+    --bg2:#101318;
+    --panel:#14181e;
+    --panel2:#191e26;
+    --line:#232a34;
+    --line2:#2e3742;
+    --ink:#f4f6f9;
+    --muted:#8a94a3;
+    --faint:#5a6472;
+    --ember:#ff5a2c;
+    --ember2:#ff8a3d;
+    --amber:#ffb347;
+    --steel:#4fd0e7;
+    --done:#57e39a;
+    --shadow:0 18px 40px -18px rgba(0,0,0,.8);
+    --disp:'Anton', 'Haettenschweiler', 'Impact', sans-serif;
+    --body:'Sora', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family:var(--body);
+    color:var(--ink);
+    background:var(--bg);
+    padding-bottom:96px;
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+  /* atmospheric background: ember glow + steel glow + grid + grain */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+    background:
+      radial-gradient(1100px 520px at 82% -8%, rgba(255,90,44,.20), transparent 60%),
+      radial-gradient(900px 500px at -10% 12%, rgba(79,208,231,.10), transparent 55%),
+      linear-gradient(180deg, var(--bg2), var(--bg) 60%);
+  }
+  body::after{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+    background-image:
+      linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
+    background-size:44px 44px;
+    mask-image:linear-gradient(180deg, #000, transparent 70%);
+    -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%);
+  }
+
+  /* ---------- header ---------- */
+  header{
+    padding:calc(20px + env(safe-area-inset-top)) 20px 8px;
+    position:relative;
+  }
+  .kicker{
+    display:flex; align-items:center; gap:9px;
+    font-size:.68rem; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--ember2); font-weight:700; margin-bottom:6px;
+  }
+  .kicker::before{ content:""; width:26px; height:2px; background:var(--ember); display:inline-block; }
+  h1.brand{
+    font-family:var(--disp); font-weight:400; margin:0;
+    font-size:clamp(2.9rem, 15vw, 4.6rem); line-height:.86;
+    letter-spacing:.01em; text-transform:uppercase;
+    background:linear-gradient(180deg,#fff, #c9cfd8);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 1px 0 rgba(0,0,0,.2);
+  }
+  h1.brand span{
+    display:block; font-size:clamp(1rem,4.6vw,1.35rem); letter-spacing:.12em;
+    background:linear-gradient(90deg,var(--ember),var(--amber));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin-top:2px;
+  }
+  .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+  .chip{
+    font-size:.72rem; font-weight:600; color:var(--muted);
+    border:1px solid var(--line2); border-radius:999px; padding:5px 11px;
+    background:rgba(255,255,255,.02);
+  }
+  .chip b{ color:var(--ink); }
+  .chip.goal{ border-color:rgba(255,90,44,.4); color:var(--ember2); }
+  .hint{ margin-top:12px; color:var(--faint); font-size:.76rem; line-height:1.5; }
+  .hint b{ color:var(--muted); }
+
+  /* ---------- mode switch (main / alt plans) ---------- */
+  .modewrap{ padding:16px 20px 0; }
+  .modes{
+    display:flex; gap:4px; padding:4px;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  }
+  .mode{
+    flex:1; text-align:center; cursor:pointer; border:0; background:transparent;
+    color:var(--muted); font-family:var(--body); font-weight:700; font-size:.78rem;
+    padding:10px 6px; border-radius:12px; letter-spacing:.02em; transition:.18s;
+    line-height:1.1;
+  }
+  .mode small{ display:block; font-size:.62rem; font-weight:600; color:var(--faint); letter-spacing:.06em; margin-top:2px; text-transform:uppercase;}
+  .mode.active{ background:linear-gradient(180deg,var(--ember),#e6461f); color:#fff; box-shadow:0 6px 16px -6px rgba(255,90,44,.7); }
+  .mode.active small{ color:rgba(255,255,255,.85); }
+
+  /* ---------- day tabs ---------- */
+  nav{
+    display:flex; gap:8px; padding:14px 20px 8px;
+    overflow-x:auto; scrollbar-width:none; scroll-snap-type:x proximity;
+    position:sticky; top:0; z-index:6;
+    background:linear-gradient(180deg, var(--bg) 72%, transparent);
+  }
+  nav::-webkit-scrollbar{ display:none; }
+  .tab{
+    scroll-snap-align:start; flex:0 0 auto; cursor:pointer;
+    padding:9px 16px; border-radius:12px; white-space:nowrap;
+    background:var(--panel); border:1px solid var(--line);
+    color:var(--muted); font-weight:700; font-size:.8rem; letter-spacing:.02em;
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px; transition:.16s;
+  }
+  .tab small{ font-size:.6rem; font-weight:600; color:var(--faint); text-transform:uppercase; letter-spacing:.08em; }
+  .tab.active{ background:var(--ink); color:#0b0c0f; border-color:var(--ink); }
+  .tab.active small{ color:rgba(11,12,15,.6); }
+
+  main{ padding:6px 16px 20px; }
+  .day{ display:none; }
+  .day.active{ display:block; }
+  .day.active .card{ animation:rise .5s cubic-bezier(.2,.7,.2,1) both; }
+  .day.active .card:nth-child(1){animation-delay:.02s}
+  .day.active .card:nth-child(2){animation-delay:.06s}
+  .day.active .card:nth-child(3){animation-delay:.10s}
+  .day.active .card:nth-child(4){animation-delay:.14s}
+  .day.active .card:nth-child(5){animation-delay:.18s}
+  .day.active .card:nth-child(6){animation-delay:.22s}
+  .day.active .card:nth-child(7){animation-delay:.26s}
+  @keyframes rise{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;} }
+
+  .day-head{ padding:16px 4px 10px; }
+  .day-kicker{ font-size:.66rem; letter-spacing:.28em; text-transform:uppercase; color:var(--steel); font-weight:700; }
+  .day-title{ font-family:var(--disp); font-weight:400; text-transform:uppercase; font-size:1.9rem; line-height:1; margin:5px 0 8px; letter-spacing:.01em; }
+  .day-note{ color:var(--muted); font-size:.82rem; display:flex; gap:8px; align-items:flex-start; }
+  .day-note::before{ content:"›"; color:var(--ember); font-weight:800; }
+  .track{ margin-top:12px; height:7px; border-radius:999px; background:var(--panel2); overflow:hidden; border:1px solid var(--line); }
+  .track > i{ display:block; height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,var(--ember),var(--amber)); transition:width .4s ease; }
+  .track-label{ font-size:.72rem; color:var(--faint); margin-top:6px; font-weight:600; }
+  .track-label b{ color:var(--done); }
+
+  /* ---------- exercise card ---------- */
+  .card{
+    position:relative; background:linear-gradient(180deg,var(--panel),#12161c);
+    border:1px solid var(--line); border-radius:20px; padding:16px 15px 15px;
+    margin-bottom:13px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:linear-gradient(180deg,var(--ember),var(--amber)); opacity:.9; }
+  .card.done{ opacity:.62; }
+  .card.done::before{ background:var(--done); }
+  .card-top{ display:flex; gap:13px; align-items:flex-start; }
+  .idx{ font-family:var(--disp); font-size:2rem; line-height:.8; color:var(--line2); flex:0 0 auto; width:34px; }
+  .card.done .idx{ color:var(--done); }
+  .diagram{
+    flex:0 0 58px; width:58px; height:58px; border-radius:14px;
+    background:radial-gradient(circle at 40% 30%, #202832, #0e1218);
+    border:1px solid var(--line2); display:flex; align-items:center; justify-content:center;
+  }
+  .diagram svg{ width:44px; height:44px; }
+  .info{ flex:1; min-width:0; }
+  .ex-name{ font-weight:700; font-size:1.02rem; line-height:1.2; margin:0 0 8px; letter-spacing:-.01em; }
+  .metrics{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:8px; }
+  .pill{ font-size:.76rem; font-weight:700; padding:5px 10px; border-radius:9px; letter-spacing:.01em; }
+  .pill.sr{ background:rgba(255,90,44,.14); color:var(--ember2); border:1px solid rgba(255,90,44,.28); }
+  .pill.rest{ background:var(--panel2); color:var(--muted); border:1px solid var(--line2); cursor:pointer; user-select:none; }
+  .pill.rest.running{ color:var(--steel); border-color:var(--steel); }
+  .pill.rest.ding{ animation:ding .5s ease 3; color:var(--done); border-color:var(--done); }
+  @keyframes ding{ 50%{ background:rgba(87,227,154,.2); } }
+  .target{ font-size:.68rem; color:var(--faint); text-transform:uppercase; letter-spacing:.12em; font-weight:600; margin-bottom:7px; }
+  .cue{ color:var(--muted); font-size:.86rem; line-height:1.45; }
+  .check{
+    flex:0 0 34px; width:34px; height:34px; border-radius:50%; cursor:pointer;
+    border:2px solid var(--line2); display:flex; align-items:center; justify-content:center;
+    color:transparent; font-size:17px; transition:.15s; margin-top:2px;
+  }
+  .check:active{ transform:scale(.9); }
+  .card.done .check{ background:var(--done); border-color:var(--done); color:#08130c; }
+
+  .actions{ display:flex; align-items:center; gap:8px; margin-top:13px; flex-wrap:wrap; }
+  .btn{
+    appearance:none; font-family:var(--body); font-weight:700; font-size:.78rem;
+    border-radius:11px; padding:9px 13px; cursor:pointer; border:1px solid var(--line2);
+    background:var(--panel2); color:var(--ink); display:inline-flex; align-items:center; gap:6px; transition:.15s;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn.play{ background:linear-gradient(180deg,#2a1a12,#20140d); border-color:#4a2c1a; color:var(--ember2); }
+  .btn.play svg{ width:14px; height:14px; }
+  .wt{ display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .wt label{ font-size:.66rem; color:var(--faint); text-transform:uppercase; letter-spacing:.1em; font-weight:700; }
+  .wt input{
+    width:76px; background:var(--bg); border:1px solid var(--line2); color:var(--ink);
+    border-radius:10px; padding:8px; font-size:.82rem; font-family:var(--body); font-weight:600; text-align:center;
+  }
+  .wt input:focus{ outline:none; border-color:var(--steel); }
+
+  .drawer{ display:none; margin-top:13px; }
+  .drawer.open{ display:block; animation:rise .28s ease both; }
+
+  /* demo: poster thumbnail that swaps to inline player */
+  .media{ position:relative; width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid var(--line2); }
+  .media iframe, .media video, .media img.frame{ position:absolute; inset:0; width:100%; height:100%; border:0; object-fit:contain; }
+  .poster{ position:absolute; inset:0; border:0; padding:0; cursor:pointer; background-size:cover; background-position:center; background-color:#0e1218; }
+  .poster::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.55)); }
+  .poster .play-btn{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:62px; height:62px; border-radius:50%; z-index:2;
+    background:linear-gradient(180deg,var(--ember),#e6461f); box-shadow:0 10px 26px -8px rgba(255,90,44,.9);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .poster .play-btn svg{ width:24px; height:24px; margin-left:3px; }
+  .demo-cap{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .demo-cap span{ font-size:.72rem; color:var(--faint); }
+  .demo-cap a{ font-size:.72rem; color:var(--steel); text-decoration:none; font-weight:600; }
+  .no-demo{ font-size:.8rem; color:var(--muted); padding:12px 14px; background:var(--panel2); border-radius:12px; border:1px solid var(--line2); }
+
+  .steps{ counter-reset:s; list-style:none; margin:0; padding:0; }
+  .steps li{ position:relative; padding:8px 0 8px 34px; font-size:.85rem; color:var(--ink); border-bottom:1px solid var(--line); line-height:1.45; }
+  .steps li:last-child{ border-bottom:0; }
+  .steps li::before{
+    counter-increment:s; content:counter(s); position:absolute; left:0; top:7px;
+    width:22px; height:22px; border-radius:7px; background:var(--panel2); border:1px solid var(--line2);
+    color:var(--ember2); font-size:.72rem; font-weight:800; display:flex; align-items:center; justify-content:center;
+  }
+  .avoid{ margin-top:11px; font-size:.8rem; color:#ffb3a3; line-height:1.45; background:rgba(255,90,44,.08); border-left:3px solid var(--ember); padding:9px 12px; border-radius:0 10px 10px 0; }
+  .avoid b{ color:var(--ember2); text-transform:uppercase; font-size:.72rem; letter-spacing:.08em; }
+
+  .finisher{
+    margin-top:6px; padding:14px 16px; border-radius:16px; font-size:.84rem; color:var(--muted);
+    background:repeating-linear-gradient(-45deg, rgba(255,90,44,.05), rgba(255,90,44,.05) 10px, transparent 10px, transparent 20px), var(--panel);
+    border:1px solid var(--line2);
+  }
+  .finisher b{ color:var(--amber); font-family:var(--disp); font-weight:400; letter-spacing:.04em; font-size:.95rem; }
+
+  .footer{ margin-top:22px; padding:18px; background:var(--panel); border:1px solid var(--line); border-radius:20px; }
+  .footer h3{ margin:0 0 10px; font-family:var(--disp); font-weight:400; text-transform:uppercase; letter-spacing:.04em; font-size:1.2rem; color:var(--ink); }
+  .footer ul{ margin:0; padding-left:18px; color:var(--muted); font-size:.82rem; line-height:1.7; }
+  .footer ul b{ color:var(--ink); }
+  .reset-row{ text-align:center; margin-top:16px; }
+  .reset-btn{ background:transparent; border:1px solid var(--line2); color:var(--faint); font-family:var(--body); font-weight:600; font-size:.74rem; padding:9px 18px; border-radius:999px; cursor:pointer; }
+  .reset-btn:active{ transform:scale(.97); }
+
+  .diagram svg [stroke="#fb923c"], .diagram svg [fill="#fb923c"]{
+    transform-box:fill-box; transform-origin:center; animation:moveY 1.4s ease-in-out infinite;
+  }
+  @keyframes moveY{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-5px);} }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">Neptune Fitness Center</div>
+  <h1 class="brand">NEPTUNE<span>Lean-Out &amp; Strength</span></h1>
+  <div class="chips">
+    <span class="chip"><b>25</b> yrs</span>
+    <span class="chip"><b>83</b> kg</span>
+    <span class="chip"><b>6</b> ft</span>
+    <span class="chip goal">Cut fat · build muscle</span>
+  </div>
+  <div class="hint">Tap the circle to log a set · tap <b>rest</b> to start a timer · tap <b>▶</b> for the demo. Progress &amp; weights save on this phone.</div>
+</header>
+
+<div class="modewrap">
+  <div class="modes" id="modes"></div>
+</div>
+
+<nav id="tabs"></nav>
+<main id="stage"></main>
+
+<script>
+/* ============================================================================
+   HOW TO EDIT THIS PLAN  (no coding needed)
+   ----------------------------------------------------------------------------
+   • DEMOS  — the "watch how" videos. Each line is:  slug: "YOUTUBE_ID"
+       The ID is the 11 chars after v= in a YouTube link
+       (youtube.com/watch?v=rT7DgCr-3pg  ->  rT7DgCr-3pg).
+       You can also paste a full .gif / .mp4 URL and it plays inline.
+   • PLANS  — the workouts. Copy an exercise { } block, change the words, done.
+       n=name  sr=sets×reps  rest=rest  demo=DEMOS slug  pose=diagram
+       target=muscles  cue=one-liner  steps=[...]  avoid=common mistake
+   ⚠ Videos only PLAY when the page is opened over http/https (e.g. GitHub
+     Pages). Opened as a local file they show "error 153" — that's a YouTube
+     rule, not a bug. The exercise thumbnail still shows either way.
+   ============================================================================ */
+
+var DEMOS = {
+  // Day 1 — push
+  benchPress:"rT7DgCr-3pg", inclineDbPress:"8iPEnn-ltC8", dbShoulderPress:"qEwKCR5JCog",
+  lateralRaise:"3VcKaXpzqRo", triPushdown:"kiuVA0gs3EI", plank:"pSHjTRCQxIw",
+  // Day 2 — lower
+  backSquat:"ultWZbUMPL8", dbRdl:"hu3jRvTc_po", walkingLunge:"Pbmj6xPo-Hw",
+  legCurl:"xdbEG3xGLI8", calfRaise:"lyDp3tbx3qU", hangingKnee:"Fl8rJJ7mZJM",
+  // Day 3 — core
+  bicycleCrunch:"wpRI3xBhJmo", russianTwist:"jjyR6Z1U4dA", sidePlank:"44ND4bOB-T0",
+  // Day 4 — pull
+  latPulldown:"CAwf7n6Luuc", seatedRow:"EU7bOadUsNI", facePull:"eTCBSFlCJ_s",
+  hammerCurl:"VqoFbCmRyyk", bicepCurl:"PuaJzTatIJM",
+  // Day 5 — lower B / glutes
+  legExtension:"uM86QE59Tgc", hipThrust:"W86oVlnLqY4", bulgarianSplit:"hiLF_pF3EJM",
+  hangingLegRaise:"2n4UqRIJyk4"
+};
+
+var svg = {
+  press: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><rect x="18" y="70" width="64" height="8" rx="3" fill="#212b3d" stroke="#2b3650" stroke-width="2"/><circle cx="28" cy="66" r="8"/><line x1="45" y1="70" x2="45" y2="34" stroke="#fb923c"/><line x1="55" y1="70" x2="55" y2="34" stroke="#fb923c"/><line x1="30" y1="30" x2="70" y2="30" stroke="#fb923c"/><circle cx="30" cy="30" r="6" fill="#fb923c" stroke="none"/><circle cx="70" cy="30" r="6" fill="#fb923c" stroke="none"/></svg>',
+  overheadPress: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="22" r="9"/><line x1="50" y1="31" x2="50" y2="62"/><line x1="50" y1="62" x2="35" y2="90"/><line x1="50" y1="62" x2="65" y2="90"/><line x1="50" y1="40" x2="35" y2="16" stroke="#fb923c"/><line x1="50" y1="40" x2="65" y2="16" stroke="#fb923c"/><circle cx="35" cy="16" r="5" fill="#fb923c" stroke="none"/><circle cx="65" cy="16" r="5" fill="#fb923c" stroke="none"/></svg>',
+  lateralRaise: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="20" r="9"/><line x1="50" y1="29" x2="50" y2="64"/><line x1="50" y1="64" x2="38" y2="92"/><line x1="50" y1="64" x2="62" y2="92"/><line x1="50" y1="36" x2="18" y2="30" stroke="#fb923c"/><line x1="50" y1="36" x2="82" y2="30" stroke="#fb923c"/><circle cx="18" cy="30" r="5" fill="#fb923c" stroke="none"/><circle cx="82" cy="30" r="5" fill="#fb923c" stroke="none"/></svg>',
+  pushdown: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="18" r="9"/><line x1="50" y1="27" x2="50" y2="66"/><line x1="50" y1="66" x2="38" y2="92"/><line x1="50" y1="66" x2="62" y2="92"/><line x1="42" y1="34" x2="42" y2="60" stroke="#fb923c"/><line x1="58" y1="34" x2="58" y2="60" stroke="#fb923c"/><line x1="30" y1="20" x2="70" y2="20" stroke="#475069"/></svg>',
+  plank: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="18" cy="55" r="8"/><line x1="26" y1="58" x2="80" y2="70" stroke="#fb923c"/><line x1="26" y1="58" x2="20" y2="78"/><line x1="80" y1="70" x2="86" y2="88"/><line x1="80" y1="70" x2="90" y2="60"/><line x1="10" y1="90" x2="90" y2="90" stroke="#475069" stroke-width="3"/></svg>',
+  squat: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="20" r="9"/><line x1="35" y1="18" x2="65" y2="18" stroke="#fb923c"/><line x1="50" y1="29" x2="50" y2="55" stroke="#fb923c"/><line x1="50" y1="55" x2="30" y2="70"/><line x1="30" y1="70" x2="34" y2="92"/><line x1="50" y1="55" x2="70" y2="70"/><line x1="70" y1="70" x2="66" y2="92"/></svg>',
+  hinge: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="24" cy="34" r="8"/><line x1="30" y1="40" x2="62" y2="58" stroke="#fb923c"/><line x1="62" y1="58" x2="62" y2="86"/><line x1="30" y1="42" x2="46" y2="70" stroke="#fb923c"/><circle cx="46" cy="76" r="4" fill="#fb923c" stroke="none"/></svg>',
+  lunge: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="46" cy="18" r="9"/><line x1="46" y1="27" x2="50" y2="55"/><line x1="50" y1="55" x2="30" y2="66" stroke="#fb923c"/><line x1="30" y1="66" x2="30" y2="92" stroke="#fb923c"/><line x1="50" y1="55" x2="72" y2="80"/><line x1="72" y1="80" x2="86" y2="72"/></svg>',
+  legCurl: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="14" cy="40" r="8"/><line x1="22" y1="42" x2="55" y2="48"/><line x1="55" y1="48" x2="55" y2="72" stroke="#fb923c"/><line x1="55" y1="72" x2="80" y2="60" stroke="#fb923c"/><line x1="8" y1="76" x2="92" y2="76" stroke="#475069" stroke-width="3"/></svg>',
+  legExtension: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="26" cy="24" r="9"/><line x1="30" y1="32" x2="45" y2="55"/><line x1="45" y1="55" x2="45" y2="80" stroke="#fb923c"/><line x1="45" y1="80" x2="82" y2="70" stroke="#fb923c"/><line x1="10" y1="86" x2="10" y2="30" stroke="#475069" stroke-width="3"/></svg>',
+  calfRaise: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="18" r="9"/><line x1="50" y1="27" x2="50" y2="58"/><line x1="50" y1="58" x2="42" y2="80" stroke="#fb923c"/><line x1="42" y1="80" x2="42" y2="88" stroke="#fb923c"/><line x1="50" y1="58" x2="58" y2="80" stroke="#fb923c"/><line x1="58" y1="80" x2="58" y2="88" stroke="#fb923c"/><line x1="20" y1="90" x2="80" y2="90" stroke="#475069" stroke-width="3"/></svg>',
+  hangingKnee: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><line x1="15" y1="10" x2="85" y2="10" stroke="#475069" stroke-width="4"/><line x1="30" y1="10" x2="46" y2="30"/><line x1="70" y1="10" x2="54" y2="30"/><circle cx="50" cy="42" r="9"/><line x1="50" y1="51" x2="50" y2="62" stroke="#fb923c"/><line x1="50" y1="62" x2="38" y2="66" stroke="#fb923c"/><line x1="50" y1="62" x2="62" y2="66" stroke="#fb923c"/></svg>',
+  hangingLegRaise: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><line x1="15" y1="10" x2="85" y2="10" stroke="#475069" stroke-width="4"/><line x1="30" y1="10" x2="46" y2="30"/><line x1="70" y1="10" x2="54" y2="30"/><circle cx="50" cy="42" r="9"/><line x1="50" y1="51" x2="50" y2="58" stroke="#fb923c"/><line x1="50" y1="58" x2="30" y2="54" stroke="#fb923c"/><line x1="50" y1="58" x2="70" y2="54" stroke="#fb923c"/></svg>',
+  pulldown: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="20" r="9"/><line x1="50" y1="29" x2="50" y2="62"/><line x1="30" y1="80" x2="50" y2="62"/><line x1="70" y1="80" x2="50" y2="62"/><line x1="50" y1="38" x2="22" y2="18" stroke="#fb923c"/><line x1="50" y1="38" x2="78" y2="18" stroke="#fb923c"/><line x1="18" y1="16" x2="82" y2="16" stroke="#475069" stroke-width="3"/></svg>',
+  row: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="70" cy="26" r="9"/><line x1="66" y1="34" x2="46" y2="55" stroke="#fb923c"/><line x1="46" y1="55" x2="46" y2="86"/><line x1="66" y1="42" x2="30" y2="46" stroke="#fb923c"/><circle cx="26" cy="46" r="4" fill="#fb923c" stroke="none"/></svg>',
+  facePull: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="22" r="9"/><line x1="50" y1="31" x2="50" y2="64"/><line x1="50" y1="64" x2="38" y2="90"/><line x1="50" y1="64" x2="62" y2="90"/><line x1="50" y1="30" x2="24" y2="24" stroke="#fb923c"/><line x1="50" y1="30" x2="76" y2="24" stroke="#fb923c"/><circle cx="24" cy="24" r="4" fill="#fb923c" stroke="none"/><circle cx="76" cy="24" r="4" fill="#fb923c" stroke="none"/></svg>',
+  curl: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="18" r="9"/><line x1="50" y1="27" x2="50" y2="62"/><line x1="50" y1="62" x2="38" y2="90"/><line x1="50" y1="62" x2="62" y2="90"/><line x1="50" y1="40" x2="62" y2="52" stroke="#fb923c"/><line x1="62" y1="52" x2="52" y2="34" stroke="#fb923c"/><circle cx="52" cy="34" r="5" fill="#fb923c" stroke="none"/></svg>',
+  hipThrust: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="14" cy="68" r="8"/><line x1="22" y1="66" x2="55" y2="52" stroke="#fb923c"/><line x1="55" y1="52" x2="80" y2="66" stroke="#fb923c"/><line x1="80" y1="66" x2="80" y2="86"/><line x1="10" y1="90" x2="90" y2="90" stroke="#475069" stroke-width="3"/></svg>',
+  bulgarian: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="40" cy="18" r="9"/><line x1="40" y1="27" x2="46" y2="55"/><line x1="46" y1="55" x2="30" y2="68" stroke="#fb923c"/><line x1="30" y1="68" x2="30" y2="90" stroke="#fb923c"/><line x1="46" y1="55" x2="70" y2="60"/><line x1="70" y1="60" x2="86" y2="42" stroke="#fb923c"/></svg>',
+  bicycle: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="22" cy="34" r="8"/><line x1="28" y1="40" x2="55" y2="55" stroke="#fb923c"/><line x1="28" y1="30" x2="48" y2="20" stroke="#fb923c"/><line x1="55" y1="55" x2="60" y2="80"/><line x1="55" y1="55" x2="80" y2="65"/><line x1="10" y1="90" x2="90" y2="90" stroke="#475069" stroke-width="3"/></svg>',
+  russianTwist: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="26" r="9"/><line x1="50" y1="35" x2="50" y2="62"/><line x1="30" y1="66" x2="70" y2="58" stroke="#fb923c"/><circle cx="30" cy="66" r="4" fill="#fb923c" stroke="none"/><line x1="50" y1="62" x2="36" y2="86"/><line x1="50" y1="62" x2="64" y2="86"/></svg>',
+  sidePlank: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="16" cy="46" r="8"/><line x1="24" y1="50" x2="78" y2="62" stroke="#fb923c"/><line x1="24" y1="58" x2="18" y2="80"/><line x1="78" y1="62" x2="84" y2="82"/><line x1="50" y1="55" x2="50" y2="30" stroke="#fb923c"/><line x1="8" y1="86" x2="92" y2="86" stroke="#475069" stroke-width="3"/></svg>',
+  cardio: '<svg viewBox="0 0 100 100" fill="none" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"><circle cx="38" cy="18" r="9"/><line x1="38" y1="27" x2="55" y2="50" stroke="#fb923c"/><line x1="55" y1="50" x2="42" y2="80"/><line x1="55" y1="50" x2="80" y2="38" stroke="#fb923c"/><line x1="38" y1="34" x2="18" y2="50" stroke="#fb923c"/><path d="M65 20 L82 12 M78 8 L82 12 L80 18" stroke="#38bdf8"/></svg>'
+};
+
+/* ---------------- MAIN 5-DAY PLAN ---------------- */
+var mainDays = [
+ { key:"d1", label:"Day 1", sub:"Push", title:"Upper Push + Core", note:"Warm-up: 5 min bike/treadmill easy + arm circles",
+  items:[
+    {n:"Bench Press (rig bar + bench)", sr:"3 × 8–10", rest:"90s", demo:"benchPress", pose:"press", target:"Chest · front delts · triceps",
+     cue:"Lower to chest, press up without flaring elbows past 75°.",
+     steps:["Lie flat, eyes under the bar, feet planted, slight arch in the lower back.","Grip just wider than shoulders; unrack and hold over your chest.","Lower under control to mid-chest, elbows ~45–75° from your body.","Press up and slightly back toward your face — don't bounce off the chest."],
+     avoid:"Flaring elbows straight out to 90° — it hammers the shoulders."},
+    {n:"Incline DB Press", sr:"3 × 10", rest:"75s", demo:"inclineDbPress", pose:"press", target:"Upper chest · front delts",
+     cue:"Bench ~30°. Press up and slightly in, don't lock elbows hard.",
+     steps:["Set the bench to about 30° (one or two notches up).","Start with dumbbells at upper-chest level, elbows under wrists.","Press up and slightly together until arms are nearly straight.","Lower slowly until you feel a stretch across the upper chest."],
+     avoid:"Setting the bench too steep (>45°) — it becomes a shoulder press."},
+    {n:"DB Shoulder Press", sr:"3 × 10", rest:"75s", demo:"dbShoulderPress", pose:"overheadPress", target:"Shoulders · triceps",
+     cue:"Press straight overhead, ribs down, no arching.",
+     steps:["Sit tall (or stand) with dumbbells at ear height, palms forward.","Brace your core and keep ribs down — don't lean back.","Press straight up until arms are nearly locked.","Lower under control back to ear height."],
+     avoid:"Arching the lower back and turning it into an incline press."},
+    {n:"DB Lateral Raise", sr:"2 × 15", rest:"45s", demo:"lateralRaise", pose:"lateralRaise", target:"Side delts (shoulder width)",
+     cue:"Slight elbow bend, raise to shoulder height, lead with elbows.",
+     steps:["Stand with light dumbbells at your sides, tiny bend in the elbows.","Raise out to the sides leading with your elbows, not your hands.","Stop at shoulder height — hands and elbows roughly level.","Lower slowly; resist swinging the weight up."],
+     avoid:"Going too heavy and shrugging the traps."},
+    {n:"Cable Triceps Pushdown", sr:"3 × 12", rest:"45s", demo:"triPushdown", pose:"pushdown", target:"Triceps",
+     cue:"Elbows pinned to sides, extend fully, control the way back up.",
+     steps:["Attach a rope to the high pulley; grab both ends.","Pin your elbows to your sides and lean in slightly.","Extend down until arms are straight, spreading the rope at the bottom.","Return only until forearms are parallel — keep tension."],
+     avoid:"Letting elbows drift forward so the shoulders take over."},
+    {n:"Plank", sr:"3 × 40–60s", rest:"30s", demo:"plank", pose:"plank", target:"Core · abs",
+     cue:"Forearms + toes, straight line hips to shoulders, squeeze hard.",
+     steps:["Forearms under shoulders, legs straight behind.","Straight line from heels to head — no sagging or piking.","Squeeze glutes and brace abs like bracing for a punch.","Breathe normally and hold for time."],
+     avoid:"Hips sagging toward the floor or hiking up into a tent."}
+  ],
+  finisher:"10 min incline treadmill walk — steady pace." },
+
+ { key:"d2", label:"Day 2", sub:"Lower A", title:"Lower Body A + Core", note:"Warm-up: 5 min bike + bodyweight squats ×15",
+  items:[
+    {n:"Back Squat (rig J-hooks)", sr:"4 × 8", rest:"2 min", demo:"backSquat", pose:"squat", target:"Quads · glutes · core",
+     cue:"Sit hips back and down, knees track over toes, chest tall.",
+     steps:["Set J-hooks ~chest height; bar on your upper back (not neck).","Unrack, step back, feet shoulder-width, toes slightly out.","Break at hips and knees together, sit down between your legs.","Hit at least parallel, then drive up through mid-foot."],
+     avoid:"Knees caving inward or heels lifting off the floor."},
+    {n:"DB Romanian Deadlift", sr:"3 × 10", rest:"90s", demo:"dbRdl", pose:"hinge", target:"Hamstrings · glutes · lower back",
+     cue:"Soft knees, push hips back, DBs close to legs, flat back.",
+     steps:["Hold dumbbells in front of your thighs, knees slightly soft.","Push your hips straight back, DBs sliding down your legs.","Lower until you feel a strong hamstring stretch (~shin level).","Drive hips forward to stand tall, squeezing glutes."],
+     avoid:"Rounding the back or bending the knees into a squat."},
+    {n:"DB Walking Lunge", sr:"3 × 12/leg", rest:"75s", demo:"walkingLunge", pose:"lunge", target:"Quads · glutes",
+     cue:"Long step, drop back knee toward floor, push through front heel.",
+     steps:["Hold a dumbbell in each hand at your sides.","Step forward into a long stride and lower straight down.","Drop the back knee toward the floor; front shin stays vertical.","Push through the front heel to stand, then step through."],
+     avoid:"Short steps that shove the front knee way past the toes."},
+    {n:"Leg Curl (machine)", sr:"3 × 12", rest:"60s", demo:"legCurl", pose:"legCurl", target:"Hamstrings",
+     cue:"Curl heels toward glutes, pause at the top, lower slow.",
+     steps:["Set the pad just above your heels; adjust the seat.","Curl your heels toward your glutes as far as comfortable.","Squeeze the hamstrings for a beat at the top.","Lower slowly — don't let the stack slam."],
+     avoid:"Yanking the weight and dropping it fast."},
+    {n:"DB Standing Calf Raise", sr:"3 × 15", rest:"45s", demo:"calfRaise", pose:"calfRaise", target:"Calves",
+     cue:"Full stretch at the bottom, rise as high onto the toes as you can.",
+     steps:["Balls of the feet on a plate or step edge.","Hold a dumbbell; let the heels drop for a full stretch.","Rise up onto your toes as high as possible.","Pause at the top, then lower slowly to the stretch."],
+     avoid:"Bouncing with a tiny range of motion."},
+    {n:"Hanging Knee Raise (rig bar)", sr:"3 × 12", rest:"45s", demo:"hangingKnee", pose:"hangingKnee", target:"Lower abs · hip flexors",
+     cue:"Lift knees to chest without swinging, control the lower.",
+     steps:["Hang from the pull-up bar, body still.","Lift your knees toward your chest, curling the pelvis slightly.","Pause briefly at the top.","Lower slowly and don't start swinging."],
+     avoid:"Using a swing/kip to fling the knees up."}
+  ],
+  finisher:"10 min bike intervals — 1 min hard / 1 min easy ×5." },
+
+ { key:"d3", label:"Day 3", sub:"Cardio", title:"Cardio + Core", note:"Made purposeful instead of just miles.",
+  items:[
+    {n:"Interval Cardio — treadmill / bike / stair", sr:"8 rounds", rest:"—", demo:"", pose:"cardio", target:"Conditioning · fat loss",
+     cue:"1 min hard / 2 min easy, repeat 8× (~24 min).",
+     steps:["Warm up easy for 3 minutes.","Go hard 1 minute — a pace you couldn't hold a conversation at.","Ease off 2 minutes at a recovery pace.","Repeat 1-on/2-off ×8, then cool down."],
+     avoid:"Making the 'hard' minute too easy — it should spike your breathing."},
+    {n:"Plank", sr:"3 × 45s", rest:"30s", demo:"plank", pose:"plank", target:"Core · abs",
+     cue:"Straight line, braced core — same as Day 1.",
+     steps:["Forearms under shoulders, legs straight behind.","Straight line heels to head, glutes and abs squeezed.","Hold for time, breathing normally."],
+     avoid:"Letting the hips sag once you get tired."},
+    {n:"Bicycle Crunch", sr:"3 × 20", rest:"30s", demo:"bicycleCrunch", pose:"bicycle", target:"Abs · obliques",
+     cue:"Slow and controlled, elbow to opposite knee, don't yank the neck.",
+     steps:["Lie on your back, hands lightly behind your head, knees up.","Bring one knee in while rotating the opposite elbow toward it.","Extend the other leg straight without touching the floor.","Alternate slowly — quality over speed."],
+     avoid:"Pulling on your neck and racing the reps."},
+    {n:"Russian Twist", sr:"3 × 20", rest:"30s", demo:"russianTwist", pose:"russianTwist", target:"Obliques (love-handle area)",
+     cue:"Lean back slightly, rotate from the ribs, add a plate once easy.",
+     steps:["Sit with knees bent, lean back ~45°, feet up if you can.","Hold your hands (or a plate) in front of your chest.","Rotate to tap the floor on one side.","Rotate all the way to the other side — one rep each."],
+     avoid:"Only moving your arms while the torso stays still."},
+    {n:"Side Plank", sr:"2 × 30s/side", rest:"30s", demo:"sidePlank", pose:"sidePlank", target:"Obliques · deep core",
+     cue:"Hits the love-handle area — stack hips, don't let them sag.",
+     steps:["Lie on your side, forearm under your shoulder, legs stacked.","Lift your hips into a straight diagonal line.","Hold, keeping hips high and stacked.","Finish the time, then switch sides."],
+     avoid:"Letting the bottom hip drift toward the floor."}
+  ],
+  finisher:"Optional: 10 min easy incline walk if energy's left." },
+
+ { key:"d4", label:"Day 4", sub:"Pull", title:"Upper Body B — Pull", note:"Warm-up: 5 min bike + arm swings",
+  items:[
+    {n:"Lat Pulldown (or Assisted Pull-up)", sr:"4 × 8–10", rest:"90s", demo:"latPulldown", pose:"pulldown", target:"Lats · upper back · biceps",
+     cue:"Pull to upper chest, lead with elbows, full stretch back.",
+     steps:["Grip wider than shoulders; secure thighs under the pad.","Lean back slightly, chest up.","Pull the bar to your upper chest, elbows down and back.","Control it back up to a full overhead stretch."],
+     avoid:"Leaning way back and heaving with momentum."},
+    {n:"Cable Seated Row", sr:"3 × 10", rest:"75s", demo:"seatedRow", pose:"row", target:"Mid-back · lats · biceps",
+     cue:"Chest up, pull to lower ribs, squeeze shoulder blades.",
+     steps:["Sit tall, feet planted, slight knee bend, chest up.","Pull the handle to your lower ribs/stomach.","Squeeze your shoulder blades together at the end.","Extend the arms back out slowly for a full stretch."],
+     avoid:"Rounding forward and jerking the torso back."},
+    {n:"Cable Face Pull", sr:"3 × 15", rest:"45s", demo:"facePull", pose:"facePull", target:"Rear delts · upper back (posture)",
+     cue:"Pull rope to face height, elbows high, rotate at the finish.",
+     steps:["Set a rope ~face height; grab both ends, thumbs back.","Step back for tension; arms straight to start.","Pull toward your face, elbows high and flaring out.","Rotate so your knuckles face behind you at the end."],
+     avoid:"Dropping the elbows and turning it into a low row."},
+    {n:"DB Hammer Curl", sr:"3 × 12", rest:"45s", demo:"hammerCurl", pose:"curl", target:"Biceps · forearms",
+     cue:"Palms facing in the whole rep, elbows pinned, no swinging.",
+     steps:["Dumbbells at your sides, palms facing your thighs.","Keep elbows pinned to your sides.","Curl up keeping palms facing inward (hammer grip).","Lower slowly to a full stretch."],
+     avoid:"Swinging the torso to throw the weight up."},
+    {n:"DB Bicep Curl", sr:"2 × 12", rest:"45s", demo:"bicepCurl", pose:"curl", target:"Biceps",
+     cue:"Palms up, full range, squeeze at the top, lower slow.",
+     steps:["Dumbbells at your sides, palms facing forward.","Curl up while keeping elbows fixed at your sides.","Squeeze the biceps hard at the top.","Lower slowly all the way to straight arms."],
+     avoid:"Half-reps and using hip momentum."}
+  ],
+  finisher:"10 min steady bike or StairMaster, moderate pace." },
+
+ { key:"d5", label:"Day 5", sub:"Lower B", title:"Lower Body B + Glutes", note:"Warm-up: 5 min bike + hip circles",
+  items:[
+    {n:"Leg Extension (machine)", sr:"4 × 10", rest:"90s", demo:"legExtension", pose:"legExtension", target:"Quads",
+     cue:"Extend fully, squeeze at the top, lower under control.",
+     steps:["Set the seat so knees line up with the pivot.","Set the ankle pad just above your feet.","Extend fully and squeeze the quads at the top.","Lower slowly — don't let the stack slam."],
+     avoid:"So much weight you have to swing or slam."},
+    {n:"Hip Thrust (bench + DB/bar)", sr:"3 × 10", rest:"90s", demo:"hipThrust", pose:"hipThrust", target:"Glutes · hamstrings",
+     cue:"Shoulder blades on bench, drive hips up, squeeze glutes hard.",
+     steps:["Upper back against a bench, weight across your hips.","Plant your feet flat, ~shoulder-width.","Drive through heels, push hips up to a flat tabletop.","Squeeze glutes at the top, then lower under control."],
+     avoid:"Overarching the lower back instead of using glutes."},
+    {n:"DB Bulgarian Split Squat", sr:"3 × 10/leg", rest:"75s", demo:"bulgarianSplit", pose:"bulgarian", target:"Quads · glutes (single leg)",
+     cue:"Rear foot elevated, front thigh near parallel, drive front heel.",
+     steps:["Top of one foot on a bench behind you.","Hop the front foot out so the knee stays over mid-foot.","Lower straight down until the front thigh is near parallel.","Drive up through the front heel; switch legs after all reps."],
+     avoid:"Front foot too close, forcing the knee past the toes."},
+    {n:"DB Standing Calf Raise", sr:"3 × 15", rest:"45s", demo:"calfRaise", pose:"calfRaise", target:"Calves",
+     cue:"Full stretch, full squeeze at the top — same as Day 2.",
+     steps:["Balls of feet on a plate/step, holding a dumbbell.","Drop the heels for a full stretch.","Rise onto your toes as high as you can and pause.","Lower slowly back to the stretch."],
+     avoid:"Tiny bouncy reps with no stretch or squeeze."},
+    {n:"Hanging Leg Raise (rig bar)", sr:"3 × 10–12", rest:"45s", demo:"hangingLegRaise", pose:"hangingLegRaise", target:"Lower abs · core",
+     cue:"Straighter legs than the knee-raise — keep the swing out of it.",
+     steps:["Hang from the bar, body still, legs fairly straight.","Raise your legs toward parallel using your abs.","Curl the pelvis up slightly at the top.","Lower slowly and controlled without swinging."],
+     avoid:"Kicking/swinging to generate momentum."}
+  ],
+  finisher:"10–15 min incline walk or light jog if you miss the running." }
+];
+
+/* ---------------- ALTERNATIVE PLANS (for weeks you swap 2–3 gym days
+   for a 5k run / pickleball / soccer). Populated below. ---------------- */
+var altNote = "With sport covering cardio, a dedicated core day would waste one of your few lifting slots — running, pickleball and soccer already load the midsection, plus one hard core move ends each session. So: Full-Body A/B for a 2-day week (every muscle twice), and Upper / Lower / Full-Body for a 3-day week (each muscle ~1.5×).";
+
+var threeDays = [
+ { key:"u", label:"Upper", sub:"Push + Pull", title:"Upper Body (push + pull)", note:"5 min row/bike + light warm-up set of bench and row.",
+  items:[
+    {n:"Bench Press", sr:"4 × 6–8", rest:"2 min", demo:"benchPress", pose:"press", target:"Chest · triceps · front delts", cue:"Shoulder blades down and back, bar to lower chest.", steps:["Set feet, pinch shoulder blades into the bench","Lower bar to lower-chest under control","Drive back up, wrists over elbows","Keep tension across the chest"], avoid:"Flaring elbows to 90° and bouncing the bar."},
+    {n:"Cable Seated Row", sr:"4 × 8–10", rest:"90s", demo:"seatedRow", pose:"row", target:"Mid-back · lats · biceps", cue:"Chest tall, pull to the belly, squeeze blades.", steps:["Sit tall, slight knee bend, grip handle","Pull to lower ribs/belly","Squeeze shoulder blades together","Extend fully for a stretch"], avoid:"Heaving with the low back."},
+    {n:"DB Shoulder Press", sr:"3 × 8–10", rest:"90s", demo:"dbShoulderPress", pose:"overheadPress", target:"Front/side delts · triceps", cue:"Ribs down, press up and slightly in to lockout.", steps:["Dumbbells at shoulder height, brace core","Keep ribs from flaring","Press overhead to lockout","Lower under control to ear level"], avoid:"Arching the low back to press."},
+    {n:"Lat Pulldown", sr:"3 × 8–10", rest:"90s", demo:"latPulldown", pose:"pulldown", target:"Lats · upper back", cue:"Drive elbows down to back pockets, chest proud.", steps:["Grip outside shoulders, thighs under pads","Lean back slightly, chest up","Pull to upper chest, elbows down","Control back to full stretch"], avoid:"Body-swinging the bar down."},
+    {n:"Cable Triceps Pushdown", sr:"3 × 10–12", rest:"60s", demo:"triPushdown", pose:"pushdown", target:"Triceps", cue:"Pin elbows to your sides, extend fully, squeeze.", steps:["Grip attachment, elbows tucked at sides","Push down until arms lock out","Squeeze triceps at the bottom","Control back up to ~90°"], avoid:"Letting elbows drift forward and using the shoulders."},
+    {n:"DB Hammer Curl", sr:"3 × 10–12", rest:"60s", demo:"hammerCurl", pose:"curl", target:"Biceps · forearms", cue:"Neutral grip, curl without swinging the elbows.", steps:["Dumbbells at sides, palms facing in","Keep elbows pinned to your ribs","Curl up, squeeze at the top","Lower slowly under control"], avoid:"Swinging the torso to heave the weight up."}
+  ],
+  finisher:"None needed — hit the compounds hard." },
+
+ { key:"l", label:"Lower", sub:"Legs + Core", title:"Lower Body + core", note:"5 min bike + light warm-up sets of squat and RDL.",
+  items:[
+    {n:"Back Squat", sr:"4 × 6–8", rest:"2 min", demo:"backSquat", pose:"squat", target:"Quads · glutes · core", cue:"Brace hard, sit between hips, knees over toes.", steps:["Bar on upper traps, brace core","Break at hips and knees together","Descend to at least parallel","Drive through mid-foot to stand"], avoid:"Knees caving or heels lifting."},
+    {n:"DB Romanian Deadlift", sr:"4 × 8–10", rest:"90s", demo:"dbRdl", pose:"hinge", target:"Hamstrings · glutes", cue:"Push hips back, dumbbells glide down the thighs.", steps:["Stand tall with dumbbells at thighs","Soft knees, hips straight back","Lower to a hamstring stretch","Drive hips forward, squeeze glutes"], avoid:"Rounding the low back."},
+    {n:"DB Walking Lunge", sr:"3 × 10–12/leg", rest:"90s", demo:"walkingLunge", pose:"lunge", target:"Quads · glutes", cue:"Long steps, back knee low, torso tall.", steps:["Dumbbells at sides, stand tall","Step forward, both knees ~90°","Drive through front heel to step through","Alternate legs"], avoid:"Front knee crashing past the toes."},
+    {n:"Leg Curl (machine)", sr:"3 × 10–12", rest:"60s", demo:"legCurl", pose:"legCurl", target:"Hamstrings", cue:"Curl heels to glutes, hips pinned.", steps:["Pad just above heels","Hips pinned to bench","Curl heels toward glutes, squeeze","Lower slowly to full stretch"], avoid:"Bouncing or lifting the hips."},
+    {n:"DB Standing Calf Raise", sr:"3 × 12–15", rest:"45s", demo:"calfRaise", pose:"calfRaise", target:"Calves", cue:"Full range: deep stretch then high squeeze.", steps:["Hold dumbbells, balls of feet on a plate/edge","Drop heels for a full stretch","Press up onto the toes, squeeze","Lower slowly under control"], avoid:"Short bouncy reps with no stretch or squeeze."},
+    {n:"Hanging Leg Raise", sr:"3 × 8–12", rest:"60s", demo:"hangingLegRaise", pose:"hangingLegRaise", target:"Lower abs · core", cue:"Roll the pelvis up, raise straight legs, no swing.", steps:["Hang from the bar, shoulders active","Brace and tuck the pelvis","Raise straight legs toward the bar","Lower slowly, controlling the swing"], avoid:"Kipping and swinging with momentum."}
+  ],
+  finisher:"Optional: 2 × 30–45s Plank." },
+
+ { key:"f", label:"Full Body", sub:"Glute + Mix", title:"Full Body (glute/hinge + upper mix)", note:"5 min row/bike + light warm-up set of hip thrust and incline press.",
+  items:[
+    {n:"Hip Thrust", sr:"4 × 8–10", rest:"90s", demo:"hipThrust", pose:"hipThrust", target:"Glutes · hamstrings", cue:"Ribs down, drive hips to full lockout, squeeze glutes.", steps:["Upper back on bench, bar/DB over hips","Feet flat, chin tucked","Drive hips up to a flat table-top","Squeeze glutes hard, lower under control"], avoid:"Over-arching the low back instead of squeezing glutes."},
+    {n:"Incline DB Press", sr:"3 × 8–10", rest:"90s", demo:"inclineDbPress", pose:"press", target:"Upper chest · triceps", cue:"30–45° bench, press up and slightly together.", steps:["Bench ~30–45°, dumbbells at shoulders","Shoulder blades pinned, elbows ~45°","Press up until dumbbells nearly touch","Lower under control to a stretch"], avoid:"Bench too steep, turning it into a shoulder press."},
+    {n:"Lat Pulldown", sr:"3 × 8–10", rest:"90s", demo:"latPulldown", pose:"pulldown", target:"Lats · upper back · biceps", cue:"Drive elbows down, chest proud.", steps:["Grip outside shoulders, thighs under pads","Lean back slightly, chest up","Pull to upper chest, elbows down","Control back to full stretch"], avoid:"Swinging the body to move the bar."},
+    {n:"DB Bulgarian Split Squat", sr:"3 × 10/leg", rest:"75s", demo:"bulgarianSplit", pose:"bulgarian", target:"Quads · glutes · balance", cue:"Rear foot elevated, drop straight down over the front heel.", steps:["Rear foot on bench, dumbbells at sides","Front foot forward enough for an upright shin","Lower until front thigh is near parallel","Drive through the front heel to stand"], avoid:"Front foot too close, forcing the knee way past the toes."},
+    {n:"DB Lateral Raise", sr:"3 × 12–15", rest:"60s", demo:"lateralRaise", pose:"lateralRaise", target:"Side delts", cue:"Lead with elbows to shoulder height, no swing.", steps:["Light dumbbells at sides, slight elbow bend","Lean torso a touch forward","Raise arms to shoulder height","Lower slowly, resist the drop"], avoid:"Going too heavy and swinging them up."},
+    {n:"Bicycle Crunch", sr:"3 × 15–20/side", rest:"45s", demo:"bicycleCrunch", pose:"bicycle", target:"Abs · obliques", cue:"Slow twists, opposite elbow to knee, extend the other leg.", steps:["Lie back, hands lightly behind head","Lift shoulders off the floor","Bring opposite elbow toward knee, extend other leg","Alternate slowly, keep low back down"], avoid:"Racing the reps and yanking on the neck."}
+  ],
+  finisher:"Optional: 2 × 30s Side Plank per side." }
+];
+
+var twoDays = [
+ { key:"a", label:"Day A", sub:"Full · Push", title:"Full Body A (Push emphasis)", note:"5 min easy row/bike + 1 light warm-up set of the first two lifts.",
+  items:[
+    {n:"Bench Press", sr:"4 × 6–8", rest:"2 min", demo:"benchPress", pose:"press", target:"Chest · triceps · front delts", cue:"Squeeze shoulder blades down and back, bar to lower chest.", steps:["Set feet flat, pinch shoulder blades into the bench","Unrack and lower bar to lower-chest under control","Touch lightly, drive back up in a slight arc","Keep wrists stacked over elbows"], avoid:"Flaring elbows to 90° and bouncing the bar off the chest."},
+    {n:"Back Squat", sr:"4 × 6–8", rest:"2 min", demo:"backSquat", pose:"squat", target:"Quads · glutes · core", cue:"Brace hard, sit between your hips, knees track over toes.", steps:["Bar on upper traps, hands snug, brace your core","Break at hips and knees together, sit down","Descend to at least parallel","Drive through mid-foot to stand tall"], avoid:"Knees caving in or heels lifting off the floor."},
+    {n:"Lat Pulldown", sr:"3 × 8–10", rest:"90s", demo:"latPulldown", pose:"pulldown", target:"Lats · upper back · biceps", cue:"Pull elbows down toward your back pockets, chest proud.", steps:["Grip just outside shoulders, thighs under pads","Lean back slightly, chest up","Pull bar to upper chest, drive elbows down","Control the bar back to a full stretch"], avoid:"Yanking with body swing or shrugging the bar down."},
+    {n:"DB Shoulder Press", sr:"3 × 8–10", rest:"90s", demo:"dbShoulderPress", pose:"overheadPress", target:"Front/side delts · triceps", cue:"Ribs down, press up and slightly in until arms lock.", steps:["Sit or stand tall, dumbbells at shoulder height","Brace core, keep ribs from flaring","Press overhead until elbows lock","Lower under control to ear level"], avoid:"Arching the low back or pressing the weights out in front."},
+    {n:"Leg Curl (machine)", sr:"3 × 10–12", rest:"60s", demo:"legCurl", pose:"legCurl", target:"Hamstrings", cue:"Curl heels to glutes, no hip lifting off the pad.", steps:["Set pad just above the heels","Keep hips pinned to the bench","Curl heels toward glutes, squeeze","Lower slowly to a full stretch"], avoid:"Bouncing at the bottom or letting hips pop up."},
+    {n:"Hanging Knee Raise", sr:"3 × 10–15", rest:"60s", demo:"hangingKnee", pose:"hangingKnee", target:"Lower abs · hip flexors", cue:"Curl knees up by rolling the pelvis, don't just swing legs.", steps:["Hang from the pull-up bar, shoulders active","Brace and tuck the pelvis","Raise knees toward chest, curling hips up","Lower slowly without swinging"], avoid:"Using momentum and swinging back and forth."}
+  ],
+  finisher:"Optional: 2 × 30–45s Plank to finish tight through the midline." },
+
+ { key:"b", label:"Day B", sub:"Full · Pull", title:"Full Body B (Pull / hinge emphasis)", note:"5 min brisk walk/bike + light warm-up set of the RDL and incline press.",
+  items:[
+    {n:"DB Romanian Deadlift", sr:"4 × 6–8", rest:"2 min", demo:"dbRdl", pose:"hinge", target:"Hamstrings · glutes · back", cue:"Push hips back, dumbbells glide down the thighs.", steps:["Stand tall holding dumbbells at thighs","Soft knees, push hips straight back","Lower until you feel a hamstring stretch","Drive hips forward to stand, squeeze glutes"], avoid:"Rounding the low back or turning it into a squat."},
+    {n:"Incline DB Press", sr:"4 × 8–10", rest:"90s", demo:"inclineDbPress", pose:"press", target:"Upper chest · front delts · triceps", cue:"30–45° bench, press up and slightly together.", steps:["Set bench to ~30–45°, dumbbells at shoulders","Shoulder blades pinned, elbows ~45°","Press up until dumbbells nearly touch","Lower under control to a stretch"], avoid:"Setting the bench too steep and turning it into a shoulder press."},
+    {n:"Cable Seated Row", sr:"4 × 8–10", rest:"90s", demo:"seatedRow", pose:"row", target:"Mid-back · lats · biceps", cue:"Chest tall, pull to the belly, squeeze shoulder blades.", steps:["Sit tall with slight knee bend, grip handle","Pull handle to lower ribs/belly","Squeeze shoulder blades together","Extend arms fully for a stretch each rep"], avoid:"Heaving with the low back or rounding forward at the stretch."},
+    {n:"DB Walking Lunge", sr:"3 × 10–12/leg", rest:"90s", demo:"walkingLunge", pose:"lunge", target:"Quads · glutes · balance", cue:"Long steps, back knee toward the floor, torso tall.", steps:["Hold dumbbells at your sides, stand tall","Step forward into a lunge, both knees ~90°","Drive through the front heel to step through","Alternate legs each step"], avoid:"Short choppy steps letting the front knee crash past the toes."},
+    {n:"DB Lateral Raise", sr:"3 × 12–15", rest:"60s", demo:"lateralRaise", pose:"lateralRaise", target:"Side delts (shoulder width)", cue:"Lead with elbows, raise to shoulder height, no swing.", steps:["Stand with light dumbbells at your sides","Slight elbow bend, lean torso a touch forward","Raise arms out to shoulder height","Lower slowly, resist the drop"], avoid:"Using heavy weight and swinging the torso to throw them up."},
+    {n:"Side Plank", sr:"3 × 30–40s/side", rest:"45s", demo:"sidePlank", pose:"sidePlank", target:"Obliques · lateral core", cue:"Stack hips, drive them up in a straight line.", steps:["Elbow under shoulder, legs stacked","Lift hips off the floor","Form a straight line head to heels","Hold and breathe, then switch sides"], avoid:"Letting the hips sag toward the floor."}
+  ],
+  finisher:"Optional: 2 × 20 Bicycle Crunch, slow and controlled." }
+];
+
+var PLANS = [
+  { id:"main",  label:"5-Day",  sub:"Full split",   days:mainDays },
+  { id:"three", label:"3-Day",  sub:"+ sport days", days:threeDays },
+  { id:"two",   label:"2-Day",  sub:"+ sport days", days:twoDays }
+];
+
+/* ---------------- storage ---------------- */
+var STORE="neptune_v3_";
+function load(k){ try{ return localStorage.getItem(STORE+k); }catch(e){ return null; } }
+function save(k,v){ try{ localStorage.setItem(STORE+k,v); }catch(e){} }
+function del(k){ try{ localStorage.removeItem(STORE+k); }catch(e){} }
+
+/* ---------------- rest timer ---------------- */
+function parseRest(s){
+  if(!s) return 0;
+  var m=s.toLowerCase();
+  if(m.indexOf('min')>-1){ var n=parseFloat(m); return Math.round((n||1)*60); }
+  var sec=parseInt(m,10); return isNaN(sec)?0:sec;
+}
+function startRest(el, secs){
+  if(el._t){ clearInterval(el._t); el._t=null; el.classList.remove('running'); el.textContent=el._orig; return; }
+  if(!secs){ return; }
+  el._orig = el._orig || el.textContent;
+  el.classList.add('running');
+  var left=secs;
+  el.textContent="⏱ "+left+"s";
+  el._t=setInterval(function(){
+    left--;
+    if(left<=0){
+      clearInterval(el._t); el._t=null;
+      el.classList.remove('running'); el.classList.add('ding');
+      el.textContent="done!";
+      if(navigator.vibrate){ navigator.vibrate([120,60,120]); }
+      setTimeout(function(){ el.classList.remove('ding'); el.textContent=el._orig; },1800);
+    } else {
+      el.textContent="⏱ "+left+"s";
+    }
+  },1000);
+}
+
+/* ---------------- demo builder ---------------- */
+function ytThumb(id){ return "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg"; }
+function isYt(v){ return /^[A-Za-z0-9_-]{11}$/.test(v); }
+
+function buildDemo(val){
+  var wrap=document.createElement('div');
+  if(!val){
+    wrap.className='no-demo';
+    wrap.textContent="No demo saved yet — add a YouTube ID to the DEMOS list at the top of the file.";
+    return wrap;
+  }
+  var lower=val.toLowerCase();
+  var media=document.createElement('div'); media.className='media';
+
+  if(isYt(val)){
+    var poster=document.createElement('button');
+    poster.className='poster';
+    poster.style.backgroundImage="url('"+ytThumb(val)+"')";
+    poster.innerHTML='<span class="play-btn"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span>';
+    poster.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src="https://www.youtube-nocookie.com/embed/"+val+"?rel=0&playsinline=1&autoplay=1";
+      f.title="demo"; f.loading="lazy"; f.allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+      f.setAttribute('allowfullscreen','');
+      media.innerHTML=''; media.appendChild(f);
+    };
+    media.appendChild(poster);
+    wrap.appendChild(media);
+    var cap=document.createElement('div'); cap.className='demo-cap';
+    cap.innerHTML='<span>Tap to play here</span><a href="https://www.youtube.com/watch?v='+val+'" target="_blank" rel="noopener">Won’t play? Open ↗</a>';
+    wrap.appendChild(cap);
+  } else if(/\.(gif|png|jpe?g|webp)(\?|$)/.test(lower)){
+    media.innerHTML='<img class="frame" loading="lazy" alt="demo" src="'+val+'">';
+    wrap.appendChild(media);
+  } else if(/\.(mp4|webm|mov)(\?|$)/.test(lower)){
+    media.innerHTML='<video class="frame" controls playsinline preload="metadata" src="'+val+'"></video>';
+    wrap.appendChild(media);
+  } else {
+    media.innerHTML='<iframe class="frame" src="'+val+'" title="demo" loading="lazy" allowfullscreen></iframe>';
+    wrap.appendChild(media);
+  }
+  return wrap;
+}
+
+/* ---------------- render ---------------- */
+var modesEl=document.getElementById('modes');
+var tabsEl=document.getElementById('tabs');
+var stageEl=document.getElementById('stage');
+var current={ plan:null };
+
+function activePlans(){ return PLANS.filter(function(p){ return p.days && p.days.length; }); }
+
+function updateProgress(planId, dayKey){
+  var sec=document.getElementById('sec-'+planId+'-'+dayKey);
+  if(!sec) return;
+  var cards=sec.querySelectorAll('.card');
+  var done=sec.querySelectorAll('.card.done').length;
+  var bar=sec.querySelector('.track > i');
+  var lbl=sec.querySelector('.track-label b');
+  var tot=sec.querySelector('.track-label .tot');
+  if(bar) bar.style.width=(cards.length? (done/cards.length*100):0)+'%';
+  if(lbl) lbl.textContent=done;
+  if(tot) tot.textContent=cards.length;
+}
+
+function buildCard(plan, day, it, idx){
+  var card=document.createElement('div'); card.className='card';
+  var doneKey=plan.id+'_'+day.key+'_'+idx+'_done';
+  var wtKey=plan.id+'_'+day.key+'_'+idx+'_wt';
+
+  var stepsHtml='';
+  if(it.steps){
+    stepsHtml='<ol class="steps">';
+    for(var s=0;s<it.steps.length;s++){ stepsHtml+='<li>'+it.steps[s]+'</li>'; }
+    stepsHtml+='</ol>';
+    if(it.avoid){ stepsHtml+='<div class="avoid"><b>Avoid</b> — '+it.avoid+'</div>'; }
+  }
+
+  card.innerHTML=
+    '<div class="card-top">'+
+      '<div class="idx">'+(idx+1)+'</div>'+
+      '<div class="diagram">'+(svg[it.pose]||'')+'</div>'+
+      '<div class="info">'+
+        '<p class="ex-name">'+it.n+'</p>'+
+        '<div class="metrics"><span class="pill sr">'+it.sr+'</span>'+
+          (it.rest && it.rest!=="—" ? '<span class="pill rest">rest '+it.rest+'</span>' : '')+
+        '</div>'+
+        (it.target?'<div class="target">'+it.target+'</div>':'')+
+        '<div class="cue">'+it.cue+'</div>'+
+      '</div>'+
+      '<div class="check">&#10003;</div>'+
+    '</div>'+
+    '<div class="actions">'+
+      '<button class="btn play" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Demo</button>'+
+      (it.steps?'<button class="btn howto" type="button">How to</button>':'')+
+      '<span class="wt"><label>kg</label><input type="text" inputmode="decimal" placeholder="—"/></span>'+
+    '</div>'+
+    '<div class="drawer demo-drawer"></div>'+
+    (it.steps?'<div class="drawer howto-drawer">'+stepsHtml+'</div>':'');
+
+  var check=card.querySelector('.check');
+  if(load(doneKey)==='1') card.classList.add('done');
+  check.onclick=function(){
+    card.classList.toggle('done');
+    card.classList.contains('done')?save(doneKey,'1'):del(doneKey);
+    updateProgress(plan.id, day.key);
+  };
+
+  var wt=card.querySelector('.wt input');
+  var savedWt=load(wtKey); if(savedWt) wt.value=savedWt;
+  wt.onchange=function(){ wt.value?save(wtKey,wt.value):del(wtKey); };
+
+  var restPill=card.querySelector('.pill.rest');
+  if(restPill){ var secs=parseRest(it.rest); restPill.onclick=function(){ startRest(restPill, secs); }; }
+
+  var playBtn=card.querySelector('.btn.play');
+  var demoDrawer=card.querySelector('.demo-drawer');
+  var built=false;
+  playBtn.onclick=function(){
+    if(!built){ demoDrawer.appendChild(buildDemo(DEMOS[it.demo])); built=true; }
+    demoDrawer.classList.toggle('open');
+  };
+
+  var howBtn=card.querySelector('.btn.howto');
+  if(howBtn){ var hd=card.querySelector('.howto-drawer'); howBtn.onclick=function(){ hd.classList.toggle('open'); }; }
+
+  return card;
+}
+
+function buildDaySection(plan, day, dayIdx){
+  var sec=document.createElement('section');
+  sec.className='day'; sec.id='sec-'+plan.id+'-'+day.key;
+
+  var head=document.createElement('div'); head.className='day-head';
+  head.innerHTML=
+    '<div class="day-kicker">'+plan.label+' · '+day.label+'</div>'+
+    '<div class="day-title">'+day.title+'</div>'+
+    '<div class="day-note">'+day.note+'</div>'+
+    '<div class="track"><i></i></div>'+
+    '<div class="track-label"><b>0</b> / <span class="tot">0</span> exercises complete</div>';
+  sec.appendChild(head);
+
+  for(var j=0;j<day.items.length;j++){ sec.appendChild(buildCard(plan, day, day.items[j], j)); }
+
+  var fin=document.createElement('div'); fin.className='finisher';
+  fin.innerHTML='<b>Finisher</b> &nbsp;'+day.finisher;
+  sec.appendChild(fin);
+
+  return sec;
+}
+
+function renderPlan(plan){
+  current.plan=plan;
+  // tabs
+  tabsEl.innerHTML='';
+  stageEl.innerHTML='';
+  plan.days.forEach(function(day, i){
+    var tab=document.createElement('button');
+    tab.className='tab'+(i===0?' active':'');
+    tab.id='tab-'+plan.id+'-'+day.key;
+    tab.innerHTML='<small>'+day.sub+'</small>'+day.label;
+    tab.onclick=function(){ showDay(plan, day.key); };
+    tabsEl.appendChild(tab);
+
+    var sec=buildDaySection(plan, day, i);
+    if(i===0) sec.classList.add('active');
+    stageEl.appendChild(sec);
+  });
+
+  // footer + reset (once per plan)
+  var footer=document.createElement('div'); footer.className='footer';
+  var extra = (plan.id!=='main' && altNote) ? '<li><b>Why this split:</b> '+altNote+'</li>' : '';
+  footer.innerHTML='<h3>Make it work</h3><ul>'+
+    '<li><b>Progressive overload:</b> when every set hits the top rep, add a little weight next time — log it in the kg box.</li>'+
+    '<li><b>Fat loss is mostly the kitchen.</b> This builds the shape; your calorie balance decides how visible it gets.</li>'+
+    '<li><b>No spot-reduction</b> for belly/love handles — core work builds the muscle so it looks tighter as fat drops.</li>'+
+    (plan.id==='main'
+      ? '<li><b>Skipping days?</b> Switch to the <b>3-Day</b> or <b>2-Day</b> tab up top and use a 5k run / pickleball / soccer for the rest.</li>'
+      : '<li><b>Sport covers your cardio</b> on this plan, so these gym days stay strength-focused — go a touch heavier.</li>')+
+    extra+
+    '</ul>';
+  stageEl.appendChild(footer);
+
+  var row=document.createElement('div'); row.className='reset-row';
+  var rb=document.createElement('button'); rb.className='reset-btn'; rb.textContent="Reset this day's checkmarks";
+  rb.onclick=function(){
+    var active=stageEl.querySelector('.day.active'); if(!active) return;
+    var parts=active.id.split('-'); var dk=parts.slice(2).join('-');
+    active.querySelectorAll('.card').forEach(function(c,k){ c.classList.remove('done'); del(plan.id+'_'+dk+'_'+k+'_done'); });
+    updateProgress(plan.id, dk);
+  };
+  row.appendChild(rb); stageEl.appendChild(row);
+
+  // progress init + restore last day
+  plan.days.forEach(function(d){ updateProgress(plan.id, d.key); });
+  var lastDay=load('lastday_'+plan.id);
+  if(lastDay && document.getElementById('sec-'+plan.id+'-'+lastDay)) showDay(plan, lastDay);
+  else window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showDay(plan, dayKey){
+  stageEl.querySelectorAll('.day').forEach(function(d){ d.classList.remove('active'); });
+  tabsEl.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var sec=document.getElementById('sec-'+plan.id+'-'+dayKey);
+  var tab=document.getElementById('tab-'+plan.id+'-'+dayKey);
+  if(sec) sec.classList.add('active');
+  if(tab){ tab.classList.add('active'); tab.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'}); }
+  save('lastday_'+plan.id, dayKey);
+}
+
+function renderModes(){
+  var plans=activePlans();
+  modesEl.innerHTML='';
+  plans.forEach(function(p, i){
+    var b=document.createElement('button');
+    b.className='mode'+(i===0?' active':'');
+    b.innerHTML=p.label+'<small>'+p.sub+'</small>';
+    b.onclick=function(){
+      modesEl.querySelectorAll('.mode').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      save('lastmode', p.id);
+      renderPlan(p);
+    };
+    modesEl.appendChild(b);
+  });
+  var lastMode=load('lastmode');
+  var start=plans[0];
+  if(lastMode){ var f=plans.filter(function(p){return p.id===lastMode;})[0]; if(f){ start=f; modesEl.querySelectorAll('.mode').forEach(function(x,idx){ x.classList.toggle('active', plans[idx].id===lastMode); }); } }
+  renderPlan(start);
+}
+
+renderModes();
+</script>
+</body>
+</html>
