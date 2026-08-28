@@ -56,9 +56,14 @@ cp Neptune-Gym-Workout-Plan.html index.html && git add -A && git commit -m "conn
 ```
 
 ## Done
-Tick an exercise off with a weight in its **kg** box → it's logged to the cloud.
-Tap the **📊** button (bottom-right) to see weight sparklines per lift, plus
-**Copy for coach** to paste your progression into an AI for advice.
+Tick an exercise off with a weight in its box → it's logged to the cloud (always
+stored in kg internally, shown in your chosen lb/kg unit). Tap the **📊** button
+(bottom-right) for your streak, body-weight/waist trend, and weight sparklines per
+lift, plus **Copy for coach** to paste your progression into an AI for advice.
+
+Weight-entry convention (also recorded with every set): **dumbbells = one bell
+(per hand)**, **barbell = total bar + all plates**, **machine = the stack number**.
+Each box shows a `/hand`, `total`, or `stack` tag so it's unambiguous.
 
 ### Notes
 - The `secret` ships in the page's JS, so it deters casual junk writes but isn't

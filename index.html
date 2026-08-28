@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FORGE">
 <title>FORGE · Training</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -302,6 +305,43 @@
   .tele-msg{ color:var(--muted); font-size:.86rem; line-height:1.55; background:var(--panel2); border:1px solid var(--line2); padding:14px; border-radius:12px; }
   .tele-msg code{ color:var(--ember2); font-size:.82rem; }
   .tele-msg textarea{ width:100%; margin-top:10px; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:10px; font-family:var(--body); font-size:.8rem; }
+  /* weight-box convention tag */
+  .wt label em{ font-style:normal; color:var(--faint); font-weight:800; margin-left:2px; letter-spacing:0; text-transform:none; }
+  /* progressive-overload nudge */
+  .nudge{ display:none; margin-top:2px; padding:8px 12px; font-size:.76rem; line-height:1.4; color:var(--ember2);
+    background:rgba(255,90,44,.08); border:1px solid rgba(255,90,44,.28); border-radius:10px; }
+  .nudge.show{ display:block; animation:rise .25s ease both; }
+  .nudge b{ color:var(--ink); }
+  /* progress panel — summary chips */
+  .p-sum{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .p-stat{ flex:1; min-width:88px; background:var(--panel2); border:1px solid var(--line2); border-radius:12px; padding:11px 12px; }
+  .p-stat .n{ font-family:var(--disp); font-size:1.5rem; line-height:1; color:var(--ink); }
+  .p-stat .n small{ font-size:.8rem; color:var(--muted); font-family:var(--body); }
+  .p-stat .k{ font-size:.66rem; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); font-weight:700; margin-top:5px; }
+  .p-stat.hot .n{ color:var(--ember2); }
+  .p-src{ font-size:.7rem; color:var(--faint); margin:2px 0 16px; }
+  .p-h{ font-size:.7rem; text-transform:uppercase; letter-spacing:.12em; color:var(--faint); font-weight:800; margin:20px 0 10px; }
+  /* streak heatmap */
+  .heat{ display:grid; grid-template-rows:repeat(7,1fr); grid-auto-flow:column; gap:3px; }
+  .heat i{ width:100%; aspect-ratio:1; border-radius:3px; background:var(--panel2); border:1px solid var(--line); }
+  .heat i.on{ background:linear-gradient(180deg,var(--done),#2fae72); border-color:transparent; }
+  .heat i.today{ outline:1.5px solid var(--ember2); outline-offset:1px; }
+  .heat-key{ display:flex; align-items:center; gap:6px; font-size:.68rem; color:var(--faint); margin-top:8px; }
+  .heat-key i{ width:11px; height:11px; border-radius:3px; display:inline-block; background:var(--panel2); border:1px solid var(--line); }
+  .heat-key i.on{ background:linear-gradient(180deg,var(--done),#2fae72); border-color:transparent; }
+  /* body log */
+  .body-form{ display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+  .body-form .fld{ display:flex; flex-direction:column; gap:4px; }
+  .body-form label{ font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--faint); font-weight:700; }
+  .body-form input{ width:76px; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:9px 10px; font-family:var(--body); font-size:.95rem; text-align:center; }
+  .body-form input:focus{ outline:none; border-color:var(--steel); }
+  .body-form .btn{ height:38px; }
+  .body-trend{ display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .body-trend .lab{ font-size:.72rem; color:var(--muted); white-space:nowrap; min-width:74px; }
+  .body-trend .lab b{ color:var(--ink); }
+  .body-trend .delta.up{ color:var(--done); } .body-trend .delta.down{ color:var(--ember2); }
+  .pr-badge{ display:inline-block; margin-left:6px; font-size:.62rem; font-weight:800; color:#08130c;
+    background:linear-gradient(180deg,#ffd54a,#f2a600); border-radius:5px; padding:1px 6px; letter-spacing:.04em; vertical-align:middle; }
 </style>
 </head>
 <body>
@@ -636,13 +676,13 @@ function niceW(kg){                                                // gym-friend
    Conservative "learn the movement" ranges for ~83 kg beginner. each = per hand
    (dumbbells); bw = bodyweight only. Shown in whichever unit is selected. */
 var BEGINNER = {
-  benchPress:{lo:20,hi:40,note:"start with the empty bar"},
+  benchPress:{lo:20,hi:40,bar:true,note:"start with the empty bar"},
   inclineDbPress:{lo:10,hi:14,each:true},
   dbShoulderPress:{lo:7.5,hi:10,each:true},
   lateralRaise:{lo:4,hi:6,each:true},
   triPushdown:{lo:10,hi:16},
   plank:{bw:true},
-  backSquat:{lo:20,hi:40,note:"empty bar first, add plates as form holds"},
+  backSquat:{lo:20,hi:40,bar:true,note:"empty bar first, add plates as form holds"},
   dbRdl:{lo:10,hi:16,each:true},
   walkingLunge:{lo:6,hi:10,each:true},
   legCurl:{lo:15,hi:25},
@@ -657,7 +697,7 @@ var BEGINNER = {
   hammerCurl:{lo:7.5,hi:10,each:true},
   bicepCurl:{lo:6,hi:9,each:true},
   legExtension:{lo:15,hi:25},
-  hipThrust:{lo:20,hi:40,note:"a bar or one heavy dumbbell"},
+  hipThrust:{lo:20,hi:40,bar:true,note:"a bar or one heavy dumbbell"},
   bulgarianSplit:{lo:6,hi:10,each:true,note:"bodyweight first, then light dumbbells"},
   hangingLegRaise:{bw:true}
 };
@@ -666,6 +706,23 @@ function begText(slug){
   var body = b.bw ? 'bodyweight'
                   : '<b>'+niceW(b.lo)+'–'+niceW(b.hi)+' '+unit()+'</b>'+(b.each?' each hand':'');
   return 'Start light: '+body+(b.note?' · '+b.note:'');
+}
+/* ---------------- weight-entry convention (what number goes in the box) ----------------
+   each  = one dumbbell (per hand)   ·  bar = total bar + all plates
+   stack = the number on the machine/cable pin   ·  bw = bodyweight (log added weight only)
+   The mode is shown as a tag on each box AND logged with every set so the charts
+   and coach export always compare like with like. */
+function loadMode(slug){
+  var b=BEGINNER[slug];
+  if(!b) return '';
+  if(b.each) return 'each';
+  if(b.bw)   return 'bw';
+  if(b.bar)  return 'bar';
+  return 'stack';
+}
+function modeTag(slug){                                             // tiny suffix on the weight label
+  var m=loadMode(slug);
+  return m==='each' ? '<em>/hand</em>' : m==='bar' ? '<em>total</em>' : m==='stack' ? '<em>stack</em>' : '';
 }
 
 /* ============================================================================
@@ -689,9 +746,18 @@ function telePost(row){
     body: JSON.stringify(row)
   }).then(function(r){ if(!r.ok) throw new Error(r.status); return r; });
 }
+/* Local, offline-first history — the Progress panel reads this on THIS device
+   even with no cloud set up. Cloud (when on) is the cross-device backup. */
+function histAll(){ try{ return JSON.parse(load('hist')||'[]'); }catch(e){ return []; } }
+function histPush(row){
+  var h=histAll(); h.push(row);
+  if(h.length>3000) h=h.slice(-3000);            // keep it bounded
+  save('hist', JSON.stringify(h));
+}
 function logEvent(row){
+  row.ts = new Date().toISOString();
+  histPush(row);                                 // always record locally
   if(!teleOn()) return;
-  row.local_ts = new Date().toISOString();
   telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); }); // stash if offline
 }
 function teleFlush(){
@@ -826,12 +892,14 @@ function buildCard(plan, day, it, idx){
     '<div class="actions">'+
       '<button class="btn play" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Demo</button>'+
       (it.steps?'<button class="btn howto" type="button">How to</button>':'')+
-      '<span class="wt"><label>'+unit()+'</label><input type="text" inputmode="decimal" placeholder="—"/></span>'+
+      '<span class="wt"><label>'+unit()+modeTag(it.demo)+'</label><input type="text" inputmode="decimal" placeholder="—"/></span>'+
     '</div>'+
+    '<div class="nudge"></div>'+
     '<div class="drawer demo-drawer"></div>'+
     (it.steps?'<div class="drawer howto-drawer">'+stepsHtml+'</div>':'');
 
   var check=card.querySelector('.check');
+  var nudge=card.querySelector('.nudge');
   if(load(doneKey)==='1') card.classList.add('done');
   check.onclick=function(){
     card.classList.toggle('done');
@@ -840,8 +908,14 @@ function buildCard(plan, day, it, idx){
     updateProgress(plan.id, day.key);
     if(nowDone){
       logEvent({ event:"done", plan:plan.id, day:day.key, exercise:it.n,
-        sr:it.sr, target:it.target||"", weight: parseFloat(load(wtKey)) || null });
-    }
+        sr:it.sr, target:it.target||"", mode:loadMode(it.demo),
+        weight: parseFloat(load(wtKey)) || null });
+      if(loadMode(it.demo)!=='bw'){
+        var step = unit()==='lb' ? '+5 lb' : '+2.5 kg';
+        nudge.innerHTML='🔥 Logged. Reps feeling easy? Aim for <b>'+step+'</b> next time.';
+        nudge.classList.add('show');
+      }
+    } else { nudge.classList.remove('show'); nudge.innerHTML=''; }
   };
 
   var wt=card.querySelector('.wt input');
@@ -999,13 +1073,44 @@ sheet.onclick=function(e){ if(e.target===sheet) sheet.classList.remove('open'); 
 function sortByTime(rows){
   return rows.slice().sort(function(a,b){ return (a.ts||a.local_ts||'').localeCompare(b.ts||b.local_ts||''); });
 }
+function dkey(dt){ return dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2); }
+function setRows(rows){ return rows.filter(function(r){ return (r.event==='done'||r.event==='set') && r.exercise; }); }
 function weightsByExercise(rows){
   var by={};
-  sortByTime(rows).forEach(function(r){
+  sortByTime(setRows(rows)).forEach(function(r){
     if(r.weight==null || isNaN(+r.weight)) return;
     (by[r.exercise]=by[r.exercise]||[]).push(+r.weight);
   });
   return by;
+}
+function bodySeries(rows, kind){
+  return sortByTime(rows.filter(function(r){ return r.event===kind && r.weight!=null && !isNaN(+r.weight); }))
+    .map(function(r){ return { t:(r.ts||r.local_ts), v:+r.weight }; });
+}
+function trainedDates(rows){
+  var s={}; setRows(rows).forEach(function(r){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; }); return s;
+}
+function currentStreak(dset){
+  var d=new Date(); d.setHours(0,0,0,0);
+  if(!dset[dkey(d)]) d.setDate(d.getDate()-1);   // today not trained yet? count from yesterday
+  var n=0; while(dset[dkey(d)]){ n++; d.setDate(d.getDate()-1); } return n;
+}
+function sessionsInLastDays(dset, days){
+  var d=new Date(); d.setHours(0,0,0,0); var n=0;
+  for(var i=0;i<days;i++){ if(dset[dkey(d)]) n++; d.setDate(d.getDate()-1); } return n;
+}
+function heatHTML(dset){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var start=new Date(today); start.setDate(start.getDate()-83);   // ~12 weeks
+  var dow=(start.getDay()+6)%7; start.setDate(start.getDate()-dow); // back up to Monday
+  var todayK=dkey(today), cells='', d=new Date(start);
+  while(d<=today){
+    var k=dkey(d);
+    cells+='<i class="'+(dset[k]?'on':'')+(k===todayK?' today':'')+'" title="'+k+'"></i>';
+    d.setDate(d.getDate()+1);
+  }
+  return '<div class="heat">'+cells+'</div>'+
+    '<div class="heat-key">less <i></i><i class="on"></i> more · last 12 weeks</div>';
 }
 function sparkline(vals){
   var w=160,h=34,pad=3;
@@ -1020,58 +1125,110 @@ function sparkline(vals){
     '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#ff5a2c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
     '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.8" fill="#ffb347"/></svg>';
 }
-function renderStats(rows){
+function liftsHTML(rows){
   var by=weightsByExercise(rows);
   var names=Object.keys(by).sort(function(a,b){ return by[b].length-by[a].length; });
-  if(!names.length){ sheetBody.innerHTML='<div class="tele-msg">No weights logged yet. Tick an exercise off with a number in its <b>weight</b> box and it\'ll chart here.</div>'; return; }
+  if(!names.length) return '<div class="tele-msg">No weights logged yet. Tick an exercise off with a number in its <b>weight</b> box and it\'ll chart here.</div>';
   var u=unit(), html='';
   names.forEach(function(n){
-    var v=by[n], last=fmtDisp(v[v.length-1]), best=fmtDisp(Math.max.apply(null,v));
-    html+='<div class="stat-ex"><div class="stat-name">'+n+'</div>'+
+    var v=by[n], last=v[v.length-1], best=Math.max.apply(null,v);
+    var pr=(v.length>1 && last>=best) ? '<span class="pr-badge">PR</span>' : '';
+    html+='<div class="stat-ex"><div class="stat-name">'+n+pr+'</div>'+
       '<div class="stat-row">'+sparkline(v)+
-      '<div class="stat-meta">last <b>'+last+'</b>'+u+' · best '+best+u+' · '+v.length+'×</div></div></div>';
+      '<div class="stat-meta">last <b>'+fmtDisp(last)+'</b>'+u+' · best '+fmtDisp(best)+u+' · '+v.length+'×</div></div></div>';
   });
-  sheetBody.innerHTML=html;
+  return html;
+}
+function bodyTrendHTML(rows, kind, label, unitTxt, conv){
+  var s=bodySeries(rows, kind);
+  if(!s.length) return '';
+  var vals=s.map(function(p){ return conv(p.v); });
+  var first=vals[0], last=vals[vals.length-1], d=Math.round((last-first)*10)/10;
+  var delta = s.length>1 ? '<span class="delta '+(d<=0?'down':'up')+'">'+(d>0?'+':'')+d+unitTxt+'</span>' : '';
+  return '<div class="body-trend">'+sparkline(vals)+
+    '<div class="lab">'+label+' <b>'+(Math.round(last*10)/10)+unitTxt+'</b> '+delta+'</div></div>';
 }
 function coachText(rows){
   var by=weightsByExercise(rows), u=unit();
   var lines=Object.keys(by).map(function(n){ return '- '+n+': '+by[n].map(fmtDisp).join(' → ')+' '+u; });
+  var bw=bodySeries(rows,'bw'), wa=bodySeries(rows,'waist');
+  var extra='';
+  if(bw.length) extra+='\n\nBodyweight ('+u+', oldest → newest): '+bw.map(function(p){ return fmtDisp(p.v); }).join(' → ');
+  if(wa.length) extra+='\nWaist (in): '+wa.map(function(p){ return Math.round(p.v*10)/10; }).join(' → ');
   return "I'm 25M, 83kg, 6ft. Goal: lose belly/love-handle fat while building visible muscle. "+
-    "Below is the weight I've logged per exercise over time ("+u+", oldest → newest):\n\n"+
-    lines.join("\n")+
-    "\n\nTell me which lifts are progressing, which are stalled, and exactly what to change next session (weight, reps, or form). Be specific.";
+    "Weight logged per exercise over time ("+u+", oldest → newest). Convention: dumbbells = per-hand weight, "+
+    "barbells = total bar+plates, machines = stack value:\n\n"+
+    lines.join("\n")+extra+
+    "\n\nTell me which lifts are progressing, which are stalled, whether my waist/weight trend fits fat-loss + muscle, "+
+    "and exactly what to change next session. Be specific.";
+}
+function renderProgress(rows){
+  var dset=trainedDates(rows), sets=setRows(rows).length;
+  var streak=currentStreak(dset), week=sessionsInLastDays(dset,7);
+  sheetSub.textContent=sets+' set'+(sets===1?'':'s')+' logged';
+  var html=''+
+    '<div class="p-sum">'+
+      '<div class="p-stat'+(streak>0?' hot':'')+'"><div class="n">'+streak+'</div><div class="k">Day streak</div></div>'+
+      '<div class="p-stat"><div class="n">'+week+'<small>/7</small></div><div class="k">This week</div></div>'+
+      '<div class="p-stat"><div class="n">'+sets+'</div><div class="k">Total sets</div></div>'+
+    '</div>'+
+    '<div class="p-src">'+(teleOn()?'☁︎ synced across devices':'saved on this device')+'</div>'+
+    '<div class="p-h">Consistency</div>'+heatHTML(dset)+
+    '<div class="p-h">Body — weight &amp; waist</div>'+
+    '<div class="body-form">'+
+      '<div class="fld"><label>Weight ('+unit()+')</label><input id="bw-in" type="text" inputmode="decimal" placeholder="—"/></div>'+
+      '<div class="fld"><label>Waist (in)</label><input id="wa-in" type="text" inputmode="decimal" placeholder="—"/></div>'+
+      '<button class="btn" type="button" id="body-log">Log today</button>'+
+    '</div>'+
+    bodyTrendHTML(rows,'bw','Weight',unit(),function(kg){ return kgToDisp(kg); })+
+    bodyTrendHTML(rows,'waist','Waist','in',function(x){ return x; })+
+    '<div class="p-h">Lifts</div>'+liftsHTML(rows)+
+    '<div class="sheet-actions"><button class="btn" type="button" id="coach-copy">📋 Copy for coach</button></div>';
+  sheetBody.innerHTML=html;
+
+  var logBtn=document.getElementById('body-log');
+  logBtn.onclick=function(){
+    var bwEl=document.getElementById('bw-in'), waEl=document.getElementById('wa-in');
+    var bw=parseFloat(bwEl.value), wa=parseFloat(waEl.value), any=false;
+    if(bwEl.value!=='' && !isNaN(bw)){ logEvent({ event:'bw', weight: Math.round(dispToKg(bw)*1000)/1000 }); any=true; }
+    if(waEl.value!=='' && !isNaN(wa)){ logEvent({ event:'waist', weight: Math.round(wa*10)/10 }); any=true; }
+    if(any){ logBtn.textContent='✓ Logged'; loadRows(renderProgress); } else { logBtn.textContent='Enter a number'; }
+  };
+  var copy=document.getElementById('coach-copy');
+  copy.onclick=function(){
+    var txt=coachText(rows);
+    function fallback(){ sheetBody.insertAdjacentHTML('afterbegin','<div class="tele-msg">Select all &amp; copy, then paste into any AI:<textarea rows="8"></textarea></div>'); sheetBody.querySelector('textarea').value=txt; }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ copy.textContent='✓ Copied — paste into an AI'; }, fallback);
+    } else { fallback(); }
+  };
+}
+/* Source the rows: cloud (cross-device) when connected, else local device log. */
+function loadRows(cb){
+  if(!teleOn()){ cb(histAll()); return; }
+  sheetSub.textContent='Syncing…';
+  fetch(TELE.url, { headers:{ "X-Token":TELE.secret } })
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(rows){ cb(Array.isArray(rows)?rows:[]); })
+    .catch(function(){ cb(histAll()); });   // offline / error → fall back to this device
 }
 fab.onclick=function(){
   sheet.classList.add('open');
-  if(!teleOn()){
-    sheetSub.textContent='On-device only';
-    sheetBody.innerHTML='<div class="tele-msg">Cross-device charts aren\'t connected yet. Follow <code>WORKER-SETUP.md</code> to spin up a free Cloudflare log (~15 min), then paste your URL + secret into the <code>TELE</code> block near the top of this file. Your checkmarks &amp; weights already save on this phone regardless.</div>';
-    return;
-  }
   sheetSub.textContent='Loading…';
-  sheetBody.innerHTML='<div class="tele-msg">Fetching your log…</div>';
-  fetch(TELE.url, { headers:{ "X-Token":TELE.secret } })
-    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function(rows){
-      if(!Array.isArray(rows)) rows=[];
-      sheetSub.textContent=rows.length+' set'+(rows.length===1?'':'s')+' logged';
-      renderStats(rows);
-      var act=document.createElement('div'); act.className='sheet-actions';
-      var copy=document.createElement('button'); copy.className='btn'; copy.type='button'; copy.textContent='📋 Copy for coach';
-      copy.onclick=function(){
-        var txt=coachText(rows);
-        function fallback(){ sheetBody.insertAdjacentHTML('afterbegin','<div class="tele-msg">Select all &amp; copy, then paste into any AI:<textarea rows="8"></textarea></div>'); sheetBody.querySelector('textarea').value=txt; }
-        if(navigator.clipboard && navigator.clipboard.writeText){
-          navigator.clipboard.writeText(txt).then(function(){ copy.textContent='✓ Copied — paste into an AI'; }, fallback);
-        } else { fallback(); }
-      };
-      act.appendChild(copy);
-      sheetBody.appendChild(act);
-    })
-    .catch(function(){ sheetSub.textContent='Error'; sheetBody.innerHTML='<div class="tele-msg">Couldn\'t reach the log. Check the <code>url</code> &amp; <code>secret</code> in the <code>TELE</code> block, and that the Worker is deployed.</div>'; });
+  sheetBody.innerHTML='<div class="tele-msg">Loading your progress…</div>';
+  loadRows(renderProgress);
 };
 
 teleFlush(); // resend anything queued while offline
+
+/* ---------------- PWA: install to home screen + offline (hosted version only) ----------------
+   Registers a tiny service worker so the page installs and works offline. Fails
+   silently when opened as a local file (file://) — the page still works fully. */
+if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){ /* not hosted / no sw — fine */ });
+  });
+}
 </script>
 </body>
 </html>

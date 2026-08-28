@@ -18,12 +18,13 @@ export default {
     if (req.method === "POST") {
       const b = await req.json().catch(() => ({}));
       await env.DB.prepare(
-        "INSERT INTO log(ts,event,plan,day,exercise,sr,target,weight) VALUES(?,?,?,?,?,?,?,?)"
+        "INSERT INTO log(ts,event,plan,day,exercise,sr,target,weight,mode) VALUES(?,?,?,?,?,?,?,?,?)"
       ).bind(
         new Date().toISOString(),
         b.event || "done", b.plan || "", b.day || "",
         b.exercise || "", b.sr || "", b.target || "",
-        (b.weight == null || b.weight === "") ? null : Number(b.weight)
+        (b.weight == null || b.weight === "") ? null : Number(b.weight),
+        b.mode || ""   // each | bar | stack | bw (weight-entry convention) — also "bw"/"waist" body-log events
       ).run();
       return json({ ok: true });
     }
