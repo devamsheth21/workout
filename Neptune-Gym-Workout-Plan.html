@@ -327,10 +327,19 @@
   .heat-months span{ font-size:.6rem; color:var(--faint); font-weight:800; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap; overflow:visible; }
   .heat i{ width:100%; aspect-ratio:1; border-radius:3px; background:var(--panel2); border:1px solid var(--line); }
   .heat i.on{ background:linear-gradient(180deg,var(--done),#2fae72); border-color:transparent; }
+  .heat i.act{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; }
   .heat i.today{ outline:1.5px solid var(--ember2); outline-offset:1px; }
   .heat-key{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:.68rem; color:var(--faint); margin-top:8px; line-height:1.5; }
   .heat-key i{ width:11px; height:11px; border-radius:3px; display:inline-block; background:var(--panel2); border:1px solid var(--line); }
   .heat-key i.on{ background:linear-gradient(180deg,var(--done),#2fae72); border-color:transparent; }
+  .heat-key i.act{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; }
+  /* non-gym activity log */
+  .act-form{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .act-form .chip{ background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:999px; padding:8px 14px; font-family:var(--body); font-size:.85rem; cursor:pointer; }
+  .act-form .chip:active{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; color:#fff; }
+  .act-form #act-in{ flex:1; min-width:90px; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:9px 12px; font-family:var(--body); font-size:.9rem; }
+  .act-form #act-in:focus{ outline:none; border-color:var(--steel); }
+  .act-form .btn{ height:38px; }
   /* body log */
   .body-form{ display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
   .body-form .fld{ display:flex; flex-direction:column; gap:4px; }
@@ -1121,9 +1130,13 @@ function bodySeries(rows, kind){
   return sortByTime(rows.filter(function(r){ return r.event===kind && r.weight!=null && !isNaN(+r.weight); }))
     .map(function(r){ return { t:(r.ts||r.local_ts), v:+r.weight }; });
 }
-function trainedDates(rows){
+function trainedDates(rows){   // gym days (a strength set was logged)
   var s={}; setRows(rows).forEach(function(r){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; }); return s;
 }
+function activityDates(rows){   // outside-the-gym days (run, sport, cardio…)
+  var s={}; rows.forEach(function(r){ if(r.event==='activity'){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; } }); return s;
+}
+function mergeDates(a,b){ var m={}; for(var k in a) m[k]=1; for(var k2 in b) m[k2]=1; return m; }
 function currentStreak(dset){
   var d=new Date(); d.setHours(0,0,0,0);
   if(!dset[dkey(d)]) d.setDate(d.getDate()-1);   // today not trained yet? count from yesterday
@@ -1133,7 +1146,7 @@ function sessionsInLastDays(dset, days){
   var d=new Date(); d.setHours(0,0,0,0); var n=0;
   for(var i=0;i<days;i++){ if(dset[dkey(d)]) n++; d.setDate(d.getDate()-1); } return n;
 }
-function heatHTML(dset){
+function heatHTML(gym, act){
   var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var today=new Date(); today.setHours(0,0,0,0);
   var start=new Date(today); start.setDate(start.getDate()-83);   // ~12 weeks
@@ -1141,7 +1154,8 @@ function heatHTML(dset){
   var todayK=dkey(today), cells='', d=new Date(start), n=0;
   while(d<=today){
     var k=dkey(d);
-    cells+='<i class="'+(dset[k]?'on':'')+(k===todayK?' today':'')+'" title="'+k+'"></i>';
+    var cls = gym[k] ? 'on' : (act[k] ? 'act' : '');   // gym wins; else outside activity
+    cells+='<i class="'+cls+(k===todayK?' today':'')+'" title="'+k+'"></i>';
     d.setDate(d.getDate()+1); n++;
   }
   var cols=Math.ceil(n/7);
@@ -1152,7 +1166,7 @@ function heatHTML(dset){
       '<div class="heat-months">'+months+'</div>'+
       '<div class="heat">'+cells+'</div>'+
     '</div>'+
-    '<div class="heat-key">each square = a day · <i class="on"></i> green = trained · '+cols+' weeks (~3 months), newest on the right</div>';
+    '<div class="heat-key"><i class="on"></i> gym · <i class="act"></i> other activity · '+cols+' weeks (~3 months), newest on the right</div>';
 }
 function sparkline(vals){
   var w=160,h=34,pad=3;
@@ -1197,6 +1211,9 @@ function coachText(rows){
   var extra='';
   if(bw.length) extra+='\n\nBodyweight ('+u+', oldest → newest): '+bw.map(function(p){ return fmtDisp(p.v); }).join(' → ');
   if(wa.length) extra+='\nWaist (in): '+wa.map(function(p){ return Math.round(p.v*10)/10; }).join(' → ');
+  var acts={}; rows.forEach(function(r){ if(r.event==='activity' && r.exercise) acts[r.exercise]=(acts[r.exercise]||0)+1; });
+  var aks=Object.keys(acts);
+  if(aks.length) extra+='\nOther activity days: '+aks.map(function(k){ return k+'×'+acts[k]; }).join(', ');
   return "I'm 25M, 83kg, 6ft. Goal: lose belly/love-handle fat while building visible muscle. "+
     "Weight logged per exercise over time ("+u+", oldest → newest). Convention: dumbbells = per-hand weight, "+
     "barbells = total bar+plates, machines = stack value:\n\n"+
@@ -1205,9 +1222,10 @@ function coachText(rows){
     "and exactly what to change next session. Be specific.";
 }
 function renderProgress(rows){
-  var dset=trainedDates(rows), sets=setRows(rows).length;
-  var streak=currentStreak(dset), week=sessionsInLastDays(dset,7);
+  var gym=trainedDates(rows), act=activityDates(rows), both=mergeDates(gym,act), sets=setRows(rows).length;
+  var streak=currentStreak(both), week=sessionsInLastDays(both,7);
   sheetSub.textContent=sets+' set'+(sets===1?'':'s')+' logged';
+  var ACTS=['Run','Cardio','Sport','Walk','Mobility'];
   var html=''+
     '<div class="p-sum">'+
       '<div class="p-stat'+(streak>0?' hot':'')+'"><div class="n">'+streak+'</div><div class="k">Day streak</div></div>'+
@@ -1215,7 +1233,13 @@ function renderProgress(rows){
       '<div class="p-stat"><div class="n">'+sets+'</div><div class="k">Total sets</div></div>'+
     '</div>'+
     '<div class="p-src">'+(teleOn()?'☁︎ synced across devices':'saved on this device')+'</div>'+
-    '<div class="p-h">Consistency</div>'+heatHTML(dset)+
+    '<div class="p-h">Consistency</div>'+heatHTML(gym,act)+
+    '<div class="p-h">Log a non-gym day</div>'+
+    '<div class="act-form">'+
+      ACTS.map(function(a){ return '<button class="chip act-chip" type="button" data-act="'+a+'">'+a+'</button>'; }).join('')+
+      '<input id="act-in" type="text" placeholder="Other…" maxlength="24"/>'+
+      '<button class="btn" type="button" id="act-log">Log today</button>'+
+    '</div>'+
     '<div class="p-h">Body — weight &amp; waist</div>'+
     '<div class="body-form">'+
       '<div class="fld"><label>Weight ('+unit()+')</label><input id="bw-in" type="text" inputmode="decimal" placeholder="—"/></div>'+
@@ -1227,6 +1251,19 @@ function renderProgress(rows){
     '<div class="p-h">Lifts</div>'+liftsHTML(rows)+
     '<div class="sheet-actions"><button class="btn" type="button" id="coach-copy">📋 Copy for coach</button></div>';
   sheetBody.innerHTML=html;
+
+  // Outside-gym activity → greens today on the heatmap (one entry per activity per day).
+  function logActivity(label){
+    label=(label||'').trim(); if(!label) return false;
+    var id='act_'+label.toLowerCase().replace(/[^a-z0-9]+/g,'')+'_'+dkey(new Date());
+    logSet({ event:'activity', id:id, exercise:label });
+    loadRows(renderProgress); return true;
+  }
+  Array.prototype.forEach.call(sheetBody.querySelectorAll('.act-chip'), function(b){
+    b.onclick=function(){ logActivity(b.getAttribute('data-act')); };
+  });
+  var actLog=document.getElementById('act-log');
+  actLog.onclick=function(){ if(!logActivity(document.getElementById('act-in').value)) actLog.textContent='Type an activity'; };
 
   var logBtn=document.getElementById('body-log');
   logBtn.onclick=function(){
