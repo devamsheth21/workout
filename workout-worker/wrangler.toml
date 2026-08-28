@@ -1,0 +1,9 @@
+name = "workout-log"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# D1 binding — the database_id is filled in by the `wrangler d1 create` step (see WORKER-SETUP.md)
+[[d1_databases]]
+binding = "DB"
+database_name = "workout-log"
+database_id = "PASTE_DATABASE_ID_HERE"

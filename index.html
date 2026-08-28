@@ -259,6 +259,38 @@
   }
   @keyframes moveY{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-5px);} }
   @media (prefers-reduced-motion: reduce){ *{ animation:none !important; } }
+
+  /* ---------- progress / analytics ---------- */
+  .fab{
+    position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:20;
+    width:56px; height:56px; border-radius:50%; border:1px solid var(--line2); cursor:pointer;
+    background:linear-gradient(180deg,var(--ember),#e6461f); color:#fff;
+    box-shadow:0 12px 28px -8px rgba(255,90,44,.8);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fab:active{ transform:scale(.94); }
+  .fab svg{ width:26px; height:26px; }
+  .sheet{ position:fixed; inset:0; z-index:30; background:rgba(6,7,9,.72); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:none; }
+  .sheet.open{ display:block; }
+  .sheet-inner{
+    position:absolute; left:0; right:0; bottom:0; max-height:88vh; overflow-y:auto;
+    background:var(--bg2); border-top:1px solid var(--line2); border-radius:22px 22px 0 0;
+    padding:18px 18px calc(28px + env(safe-area-inset-bottom)); animation:rise .3s ease both;
+  }
+  .sheet-grip{ width:40px; height:4px; border-radius:999px; background:var(--line2); margin:0 auto 12px; }
+  .sheet h2{ font-family:var(--disp); font-weight:400; text-transform:uppercase; font-size:1.7rem; margin:0 0 2px; letter-spacing:.02em; }
+  .sheet .sub{ color:var(--faint); font-size:.78rem; margin-bottom:14px; }
+  .stat-ex{ padding:12px 0; border-bottom:1px solid var(--line); }
+  .stat-ex:last-child{ border-bottom:0; }
+  .stat-name{ font-weight:700; font-size:.92rem; margin-bottom:6px; }
+  .stat-row{ display:flex; align-items:center; gap:10px; }
+  .spark{ flex:1; height:34px; min-width:0; }
+  .stat-meta{ font-size:.72rem; color:var(--muted); white-space:nowrap; }
+  .stat-meta b{ color:var(--done); }
+  .sheet-actions{ display:flex; gap:8px; margin:16px 0 4px; flex-wrap:wrap; }
+  .tele-msg{ color:var(--muted); font-size:.86rem; line-height:1.55; background:var(--panel2); border:1px solid var(--line2); padding:14px; border-radius:12px; }
+  .tele-msg code{ color:var(--ember2); font-size:.82rem; }
+  .tele-msg textarea{ width:100%; margin-top:10px; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:10px; font-family:var(--body); font-size:.8rem; }
 </style>
 </head>
 <body>
@@ -281,6 +313,18 @@
 
 <nav id="tabs"></nav>
 <main id="stage"></main>
+
+<button class="fab" id="fab" title="Progress" aria-label="Progress">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg>
+</button>
+<div class="sheet" id="sheet">
+  <div class="sheet-inner">
+    <div class="sheet-grip"></div>
+    <h2>Progress</h2>
+    <div class="sub" id="sheet-sub"></div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
 
 <script>
 /* ============================================================================
@@ -552,6 +596,40 @@ function load(k){ try{ return localStorage.getItem(STORE+k); }catch(e){ return n
 function save(k,v){ try{ localStorage.setItem(STORE+k,v); }catch(e){} }
 function del(k){ try{ localStorage.removeItem(STORE+k); }catch(e){} }
 
+/* ============================================================================
+   TELEMETRY (optional) — log sets to a free cloud store for the 📊 Progress panel
+   ----------------------------------------------------------------------------
+   Leave url:"" and the page behaves exactly as before (progress saves on THIS
+   phone only). To turn on cross-device logging + charts, follow WORKER-SETUP.md
+   (free Cloudflare, ~15 min), then paste your Worker URL + secret below.
+   ============================================================================ */
+var TELE = {
+  url:    "",           // e.g. "https://workout-log.yourname.workers.dev"
+  secret: "changeme"    // must match the SECRET you set on the Worker
+};
+function teleOn(){ return !!(TELE.url && /^https?:/i.test(TELE.url)); }
+function teleQueue(){ try{ return JSON.parse(load('telequeue')||'[]'); }catch(e){ return []; } }
+function teleQueueSet(a){ save('telequeue', JSON.stringify(a.slice(-500))); }
+function telePost(row){
+  return fetch(TELE.url, {
+    method:"POST", keepalive:true,
+    headers:{ "Content-Type":"application/json", "X-Token":TELE.secret },
+    body: JSON.stringify(row)
+  }).then(function(r){ if(!r.ok) throw new Error(r.status); return r; });
+}
+function logEvent(row){
+  if(!teleOn()) return;
+  row.local_ts = new Date().toISOString();
+  telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); }); // stash if offline
+}
+function teleFlush(){
+  if(!teleOn()) return;
+  var q=teleQueue(); if(!q.length) return;
+  var remaining=[]; var chain=Promise.resolve();
+  q.forEach(function(row){ chain=chain.then(function(){ return telePost(row); }).catch(function(){ remaining.push(row); }); });
+  chain.then(function(){ teleQueueSet(remaining); });
+}
+
 /* ---------------- rest timer ---------------- */
 function parseRest(s){
   if(!s) return 0;
@@ -684,8 +762,13 @@ function buildCard(plan, day, it, idx){
   if(load(doneKey)==='1') card.classList.add('done');
   check.onclick=function(){
     card.classList.toggle('done');
-    card.classList.contains('done')?save(doneKey,'1'):del(doneKey);
+    var nowDone=card.classList.contains('done');
+    nowDone?save(doneKey,'1'):del(doneKey);
     updateProgress(plan.id, day.key);
+    if(nowDone){
+      logEvent({ event:"done", plan:plan.id, day:day.key, exercise:it.n,
+        sr:it.sr, target:it.target||"", weight: parseFloat(load(wtKey)) || null });
+    }
   };
 
   var wt=card.querySelector('.wt input');
@@ -812,6 +895,90 @@ function renderModes(){
 }
 
 renderModes();
+
+/* ---------------- progress / analytics panel ---------------- */
+var fab=document.getElementById('fab');
+var sheet=document.getElementById('sheet');
+var sheetBody=document.getElementById('sheet-body');
+var sheetSub=document.getElementById('sheet-sub');
+sheet.onclick=function(e){ if(e.target===sheet) sheet.classList.remove('open'); };
+
+function sortByTime(rows){
+  return rows.slice().sort(function(a,b){ return (a.ts||a.local_ts||'').localeCompare(b.ts||b.local_ts||''); });
+}
+function weightsByExercise(rows){
+  var by={};
+  sortByTime(rows).forEach(function(r){
+    if(r.weight==null || isNaN(+r.weight)) return;
+    (by[r.exercise]=by[r.exercise]||[]).push(+r.weight);
+  });
+  return by;
+}
+function sparkline(vals){
+  var w=160,h=34,pad=3;
+  var min=Math.min.apply(null,vals), max=Math.max.apply(null,vals), rng=(max-min)||1;
+  var pts=vals.map(function(v,i){
+    var x=pad+(vals.length===1? (w-2*pad) : (i/(vals.length-1))*(w-2*pad));
+    var y=h-pad-((v-min)/rng)*(h-2*pad);
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  var last=pts[pts.length-1].split(',');
+  return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+
+    '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#ff5a2c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.8" fill="#ffb347"/></svg>';
+}
+function renderStats(rows){
+  var by=weightsByExercise(rows);
+  var names=Object.keys(by).sort(function(a,b){ return by[b].length-by[a].length; });
+  if(!names.length){ sheetBody.innerHTML='<div class="tele-msg">No weights logged yet. Tick an exercise off with a number in its <b>kg</b> box and it\'ll chart here.</div>'; return; }
+  var html='';
+  names.forEach(function(n){
+    var v=by[n], last=v[v.length-1], best=Math.max.apply(null,v);
+    html+='<div class="stat-ex"><div class="stat-name">'+n+'</div>'+
+      '<div class="stat-row">'+sparkline(v)+
+      '<div class="stat-meta">last <b>'+last+'</b>kg · best '+best+'kg · '+v.length+'×</div></div></div>';
+  });
+  sheetBody.innerHTML=html;
+}
+function coachText(rows){
+  var by=weightsByExercise(rows);
+  var lines=Object.keys(by).map(function(n){ return '- '+n+': '+by[n].join(' → ')+' kg'; });
+  return "I'm 25M, 83kg, 6ft. Goal: lose belly/love-handle fat while building visible muscle. "+
+    "Below is the weight I've logged per exercise over time (kg, oldest → newest):\n\n"+
+    lines.join("\n")+
+    "\n\nTell me which lifts are progressing, which are stalled, and exactly what to change next session (weight, reps, or form). Be specific.";
+}
+fab.onclick=function(){
+  sheet.classList.add('open');
+  if(!teleOn()){
+    sheetSub.textContent='On-device only';
+    sheetBody.innerHTML='<div class="tele-msg">Cross-device charts aren\'t connected yet. Follow <code>WORKER-SETUP.md</code> to spin up a free Cloudflare log (~15 min), then paste your URL + secret into the <code>TELE</code> block near the top of this file. Your checkmarks &amp; weights already save on this phone regardless.</div>';
+    return;
+  }
+  sheetSub.textContent='Loading…';
+  sheetBody.innerHTML='<div class="tele-msg">Fetching your log…</div>';
+  fetch(TELE.url, { headers:{ "X-Token":TELE.secret } })
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(rows){
+      if(!Array.isArray(rows)) rows=[];
+      sheetSub.textContent=rows.length+' set'+(rows.length===1?'':'s')+' logged';
+      renderStats(rows);
+      var act=document.createElement('div'); act.className='sheet-actions';
+      var copy=document.createElement('button'); copy.className='btn'; copy.type='button'; copy.textContent='📋 Copy for coach';
+      copy.onclick=function(){
+        var txt=coachText(rows);
+        function fallback(){ sheetBody.insertAdjacentHTML('afterbegin','<div class="tele-msg">Select all &amp; copy, then paste into any AI:<textarea rows="8"></textarea></div>'); sheetBody.querySelector('textarea').value=txt; }
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(txt).then(function(){ copy.textContent='✓ Copied — paste into an AI'; }, fallback);
+        } else { fallback(); }
+      };
+      act.appendChild(copy);
+      sheetBody.appendChild(act);
+    })
+    .catch(function(){ sheetSub.textContent='Error'; sheetBody.innerHTML='<div class="tele-msg">Couldn\'t reach the log. Check the <code>url</code> &amp; <code>secret</code> in the <code>TELE</code> block, and that the Worker is deployed.</div>'; });
+};
+
+teleFlush(); // resend anything queued while offline
 </script>
 </body>
 </html>
