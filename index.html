@@ -751,16 +751,32 @@ function telePost(row){
 /* Local, offline-first history — the Progress panel reads this on THIS device
    even with no cloud set up. Cloud (when on) is the cross-device backup. */
 function histAll(){ try{ return JSON.parse(load('hist')||'[]'); }catch(e){ return []; } }
-function histPush(row){
-  var h=histAll(); h.push(row);
-  if(h.length>3000) h=h.slice(-3000);            // keep it bounded
-  save('hist', JSON.stringify(h));
-}
+function histSave(h){ if(h.length>3000) h=h.slice(-3000); save('hist', JSON.stringify(h)); }
+function histPush(row){ var h=histAll(); h.push(row); histSave(h); }
+/* Body-weight / waist entries — append (no id). */
 function logEvent(row){
   row.ts = new Date().toISOString();
-  histPush(row);                                 // always record locally
+  histPush(row);
   if(!teleOn()) return;
-  telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); }); // stash if offline
+  telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); });
+}
+/* Set completion — idempotent by id, so re-tapping the same set never double-logs. */
+function logSet(row){
+  row.ts = new Date().toISOString();
+  var h=histAll(), i=-1;
+  if(row.id){ for(var j=0;j<h.length;j++){ if(h[j].id===row.id){ i=j; break; } } }
+  if(i>=0) h[i]=row; else h.push(row);           // replace same-id entry, else add
+  histSave(h);
+  if(!teleOn()) return;
+  telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); });
+}
+/* Undo an accidental tick — removes the local entry, tells the cloud to drop it too. */
+function unlogSet(id){
+  if(!id) return;
+  histSave(histAll().filter(function(r){ return r.id!==id; }));
+  if(!teleOn()) return;
+  var row={ event:'undo', id:id, ts:new Date().toISOString() };
+  telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); });
 }
 function teleFlush(){
   if(!teleOn()) return;
@@ -902,6 +918,7 @@ function buildCard(plan, day, it, idx){
 
   var check=card.querySelector('.check');
   var nudge=card.querySelector('.nudge');
+  var lastLogId=null;                              // id of the entry this tap wrote, for clean undo
   if(load(doneKey)==='1') card.classList.add('done');
   check.onclick=function(){
     card.classList.toggle('done');
@@ -909,7 +926,8 @@ function buildCard(plan, day, it, idx){
     nowDone?save(doneKey,'1'):del(doneKey);
     updateProgress(plan.id, day.key);
     if(nowDone){
-      logEvent({ event:"done", plan:plan.id, day:day.key, exercise:it.n,
+      lastLogId=plan.id+'_'+day.key+'_'+idx+'_'+dkey(new Date());   // one entry per set per day
+      logSet({ event:"done", id:lastLogId, plan:plan.id, day:day.key, exercise:it.n,
         sr:it.sr, target:it.target||"", mode:loadMode(it.demo),
         weight: parseFloat(load(wtKey)) || null });
       if(loadMode(it.demo)!=='bw'){
@@ -917,7 +935,11 @@ function buildCard(plan, day, it, idx){
         nudge.innerHTML='🔥 Logged. Reps feeling easy? Aim for <b>'+step+'</b> next time.';
         nudge.classList.add('show');
       }
-    } else { nudge.classList.remove('show'); nudge.innerHTML=''; }
+    } else {                                        // accidental tap → drop the entry we just wrote
+      unlogSet(lastLogId || (plan.id+'_'+day.key+'_'+idx+'_'+dkey(new Date())));
+      lastLogId=null;
+      nudge.classList.remove('show'); nudge.innerHTML='';
+    }
   };
 
   var wt=card.querySelector('.wt input');
@@ -1076,7 +1098,17 @@ function sortByTime(rows){
   return rows.slice().sort(function(a,b){ return (a.ts||a.local_ts||'').localeCompare(b.ts||b.local_ts||''); });
 }
 function dkey(dt){ return dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2); }
-function setRows(rows){ return rows.filter(function(r){ return (r.event==='done'||r.event==='set') && r.exercise; }); }
+/* Completed sets, with duplicates collapsed by id and any 'undo' events netted out.
+   Local hist is already deduped; this matters for the append-only cloud log. */
+function setRows(rows){
+  var byId={}, noId=[];
+  sortByTime(rows).forEach(function(r){
+    if(r.event==='undo' && r.id){ delete byId[r.id]; return; }
+    if(!((r.event==='done'||r.event==='set') && r.exercise)) return;
+    if(r.id) byId[r.id]=r; else noId.push(r);      // id-less = older entries, keep as-is
+  });
+  return noId.concat(Object.keys(byId).map(function(k){ return byId[k]; }));
+}
 function weightsByExercise(rows){
   var by={};
   sortByTime(setRows(rows)).forEach(function(r){
