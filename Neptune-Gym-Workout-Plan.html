@@ -96,6 +96,14 @@
   .hint{ margin-top:12px; color:var(--faint); font-size:.76rem; line-height:1.5; }
   .hint b{ color:var(--muted); }
 
+  /* ---------- unit toggle (lb / kg) ---------- */
+  .unitbar{ display:flex; align-items:center; gap:10px; margin-top:13px; }
+  .unitlabel{ font-size:.68rem; color:var(--faint); text-transform:uppercase; letter-spacing:.14em; font-weight:700; }
+  .unittoggle{ display:inline-flex; background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:3px; gap:3px; }
+  .unittoggle button{ border:0; background:transparent; color:var(--muted); font-family:var(--body); font-weight:800; font-size:.76rem; padding:6px 18px; border-radius:8px; cursor:pointer; transition:.15s; letter-spacing:.02em; }
+  .unittoggle button:active{ transform:scale(.95); }
+  .unittoggle button.active{ background:linear-gradient(180deg,var(--ember),#e6461f); color:#fff; box-shadow:0 5px 14px -6px rgba(255,90,44,.8); }
+
   /* ---------- mode switch (main / alt plans) ---------- */
   .modewrap{ padding:16px 20px 0; }
   .modes{
@@ -183,6 +191,9 @@
   @keyframes ding{ 50%{ background:rgba(87,227,154,.2); } }
   .target{ font-size:.68rem; color:var(--faint); text-transform:uppercase; letter-spacing:.12em; font-weight:600; margin-bottom:7px; }
   .cue{ color:var(--muted); font-size:.86rem; line-height:1.45; }
+  .beg{ margin-top:8px; font-size:.74rem; line-height:1.4; color:var(--steel); font-weight:600; display:flex; gap:6px; align-items:flex-start; }
+  .beg::before{ content:"◂"; color:var(--steel); font-weight:800; opacity:.8; }
+  .beg b{ color:var(--ink); font-weight:700; }
   .check{
     flex:0 0 34px; width:34px; height:34px; border-radius:50%; cursor:pointer;
     border:2px solid var(--line2); display:flex; align-items:center; justify-content:center;
@@ -305,6 +316,13 @@
     <span class="chip goal">Cut fat · build muscle</span>
   </div>
   <div class="hint">Tap the circle to log a set · tap <b>rest</b> to start a timer · tap <b>▶</b> for the demo. Progress &amp; weights save on this phone.</div>
+  <div class="unitbar">
+    <span class="unitlabel">Weights in</span>
+    <div class="unittoggle" id="unittoggle">
+      <button type="button" data-u="lb">lb</button>
+      <button type="button" data-u="kg">kg</button>
+    </div>
+  </div>
 </header>
 
 <div class="modewrap">
@@ -596,6 +614,60 @@ function load(k){ try{ return localStorage.getItem(STORE+k); }catch(e){ return n
 function save(k,v){ try{ localStorage.setItem(STORE+k,v); }catch(e){} }
 function del(k){ try{ localStorage.removeItem(STORE+k); }catch(e){} }
 
+/* ---------------- units (lb ⇄ kg) ----------------
+   Weights are ALWAYS stored & logged in kg internally so charts/telemetry stay
+   consistent no matter which unit you're viewing. The toggle only changes how
+   they're shown and typed. Default is lb (most gyms use pounds). */
+var KG_PER_LB = 0.45359237;
+function unit(){ return load('unit')==='kg' ? 'kg' : 'lb'; }        // default lb
+function kgToDisp(kg){ return unit()==='lb' ? (+kg)/KG_PER_LB : (+kg); }
+function dispToKg(v){ return unit()==='lb' ? v*KG_PER_LB : v; }
+function fmtInput(kg){                                              // kg store value -> input text in current unit
+  if(kg==null || kg==='' || isNaN(+kg)) return '';
+  return String(Math.round(kgToDisp(kg)*10)/10).replace(/\.0$/,'');
+}
+function fmtDisp(kg){ return Math.round(kgToDisp(kg)*10)/10; }      // number, for charts/coach
+function niceW(kg){                                                // gym-friendly rounded number in current unit
+  var v=kgToDisp(kg);
+  return unit()==='lb' ? Math.round(v/5)*5 : Math.round(v/2.5)*2.5;
+}
+
+/* ---------------- beginner starting weights (kg, keyed by demo slug) ----------------
+   Conservative "learn the movement" ranges for ~83 kg beginner. each = per hand
+   (dumbbells); bw = bodyweight only. Shown in whichever unit is selected. */
+var BEGINNER = {
+  benchPress:{lo:20,hi:40,note:"start with the empty bar"},
+  inclineDbPress:{lo:10,hi:14,each:true},
+  dbShoulderPress:{lo:7.5,hi:10,each:true},
+  lateralRaise:{lo:4,hi:6,each:true},
+  triPushdown:{lo:10,hi:16},
+  plank:{bw:true},
+  backSquat:{lo:20,hi:40,note:"empty bar first, add plates as form holds"},
+  dbRdl:{lo:10,hi:16,each:true},
+  walkingLunge:{lo:6,hi:10,each:true},
+  legCurl:{lo:15,hi:25},
+  calfRaise:{lo:10,hi:16,each:true},
+  hangingKnee:{bw:true},
+  bicycleCrunch:{bw:true},
+  russianTwist:{bw:true,note:"add a light plate once it's easy"},
+  sidePlank:{bw:true},
+  latPulldown:{lo:25,hi:35},
+  seatedRow:{lo:25,hi:35},
+  facePull:{lo:10,hi:16},
+  hammerCurl:{lo:7.5,hi:10,each:true},
+  bicepCurl:{lo:6,hi:9,each:true},
+  legExtension:{lo:15,hi:25},
+  hipThrust:{lo:20,hi:40,note:"a bar or one heavy dumbbell"},
+  bulgarianSplit:{lo:6,hi:10,each:true,note:"bodyweight first, then light dumbbells"},
+  hangingLegRaise:{bw:true}
+};
+function begText(slug){
+  var b=BEGINNER[slug]; if(!b) return '';
+  var body = b.bw ? 'bodyweight'
+                  : '<b>'+niceW(b.lo)+'–'+niceW(b.hi)+' '+unit()+'</b>'+(b.each?' each hand':'');
+  return 'Start light: '+body+(b.note?' · '+b.note:'');
+}
+
 /* ============================================================================
    TELEMETRY (optional) — log sets to a free cloud store for the 📊 Progress panel
    ----------------------------------------------------------------------------
@@ -747,13 +819,14 @@ function buildCard(plan, day, it, idx){
         '</div>'+
         (it.target?'<div class="target">'+it.target+'</div>':'')+
         '<div class="cue">'+it.cue+'</div>'+
+        (begText(it.demo)?'<div class="beg">'+begText(it.demo)+'</div>':'')+
       '</div>'+
       '<div class="check">&#10003;</div>'+
     '</div>'+
     '<div class="actions">'+
       '<button class="btn play" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Demo</button>'+
       (it.steps?'<button class="btn howto" type="button">How to</button>':'')+
-      '<span class="wt"><label>kg</label><input type="text" inputmode="decimal" placeholder="—"/></span>'+
+      '<span class="wt"><label>'+unit()+'</label><input type="text" inputmode="decimal" placeholder="—"/></span>'+
     '</div>'+
     '<div class="drawer demo-drawer"></div>'+
     (it.steps?'<div class="drawer howto-drawer">'+stepsHtml+'</div>':'');
@@ -772,8 +845,12 @@ function buildCard(plan, day, it, idx){
   };
 
   var wt=card.querySelector('.wt input');
-  var savedWt=load(wtKey); if(savedWt) wt.value=savedWt;
-  wt.onchange=function(){ wt.value?save(wtKey,wt.value):del(wtKey); };
+  wt.value=fmtInput(load(wtKey));   // stored as kg, shown in current unit
+  wt.onchange=function(){
+    var kg=dispToKg(parseFloat(wt.value));
+    if(wt.value!=='' && !isNaN(kg)){ kg=Math.round(kg*1000)/1000; save(wtKey,String(kg)); wt.value=fmtInput(kg); }
+    else { del(wtKey); wt.value=''; }
+  };
 
   var restPill=card.querySelector('.pill.rest');
   if(restPill){ var secs=parseRest(it.rest); restPill.onclick=function(){ startRest(restPill, secs); }; }
@@ -836,7 +913,7 @@ function renderPlan(plan){
   var footer=document.createElement('div'); footer.className='footer';
   var extra = (plan.id!=='main' && altNote) ? '<li><b>Why this split:</b> '+altNote+'</li>' : '';
   footer.innerHTML='<h3>Make it work</h3><ul>'+
-    '<li><b>Progressive overload:</b> when every set hits the top rep, add a little weight next time — log it in the kg box.</li>'+
+    '<li><b>Progressive overload:</b> when every set hits the top rep, add a little weight next time — log it in the weight box.</li>'+
     '<li><b>Fat loss is mostly the kitchen.</b> This builds the shape; your calorie balance decides how visible it gets.</li>'+
     '<li><b>No spot-reduction</b> for belly/love handles — core work builds the muscle so it looks tighter as fat drops.</li>'+
     (plan.id==='main'
@@ -896,6 +973,22 @@ function renderModes(){
 
 renderModes();
 
+/* ---------------- unit toggle ---------------- */
+var unitToggle=document.getElementById('unittoggle');
+function paintUnitToggle(){
+  var u=unit();
+  unitToggle.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-u')===u); });
+}
+unitToggle.querySelectorAll('button').forEach(function(b){
+  b.onclick=function(){
+    if(b.getAttribute('data-u')===unit()) return;
+    save('unit', b.getAttribute('data-u'));
+    paintUnitToggle();
+    if(current.plan) renderPlan(current.plan);   // rebuild inputs + beginner notes in the new unit
+  };
+});
+paintUnitToggle();
+
 /* ---------------- progress / analytics panel ---------------- */
 var fab=document.getElementById('fab');
 var sheet=document.getElementById('sheet');
@@ -930,21 +1023,21 @@ function sparkline(vals){
 function renderStats(rows){
   var by=weightsByExercise(rows);
   var names=Object.keys(by).sort(function(a,b){ return by[b].length-by[a].length; });
-  if(!names.length){ sheetBody.innerHTML='<div class="tele-msg">No weights logged yet. Tick an exercise off with a number in its <b>kg</b> box and it\'ll chart here.</div>'; return; }
-  var html='';
+  if(!names.length){ sheetBody.innerHTML='<div class="tele-msg">No weights logged yet. Tick an exercise off with a number in its <b>weight</b> box and it\'ll chart here.</div>'; return; }
+  var u=unit(), html='';
   names.forEach(function(n){
-    var v=by[n], last=v[v.length-1], best=Math.max.apply(null,v);
+    var v=by[n], last=fmtDisp(v[v.length-1]), best=fmtDisp(Math.max.apply(null,v));
     html+='<div class="stat-ex"><div class="stat-name">'+n+'</div>'+
       '<div class="stat-row">'+sparkline(v)+
-      '<div class="stat-meta">last <b>'+last+'</b>kg · best '+best+'kg · '+v.length+'×</div></div></div>';
+      '<div class="stat-meta">last <b>'+last+'</b>'+u+' · best '+best+u+' · '+v.length+'×</div></div></div>';
   });
   sheetBody.innerHTML=html;
 }
 function coachText(rows){
-  var by=weightsByExercise(rows);
-  var lines=Object.keys(by).map(function(n){ return '- '+n+': '+by[n].join(' → ')+' kg'; });
+  var by=weightsByExercise(rows), u=unit();
+  var lines=Object.keys(by).map(function(n){ return '- '+n+': '+by[n].map(fmtDisp).join(' → ')+' '+u; });
   return "I'm 25M, 83kg, 6ft. Goal: lose belly/love-handle fat while building visible muscle. "+
-    "Below is the weight I've logged per exercise over time (kg, oldest → newest):\n\n"+
+    "Below is the weight I've logged per exercise over time ("+u+", oldest → newest):\n\n"+
     lines.join("\n")+
     "\n\nTell me which lifts are progressing, which are stalled, and exactly what to change next session (weight, reps, or form). Be specific.";
 }
