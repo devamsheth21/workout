@@ -334,17 +334,19 @@
   .heat-key i.on{ background:linear-gradient(180deg,var(--done),#2fae72); border-color:transparent; }
   .heat-key i.act{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; }
   /* non-gym activity log */
-  .act-form{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .act-form{ display:flex; flex-direction:column; gap:10px; }
   .act-form .chip{ background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:999px; padding:8px 14px; font-family:var(--body); font-size:.85rem; cursor:pointer; }
   .act-form .chip:active{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; color:#fff; }
-  .act-form #act-in{ flex:1; min-width:90px; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:9px 12px; font-family:var(--body); font-size:.9rem; }
-  .act-form #act-in:focus{ outline:none; border-color:var(--steel); }
+  .act-grid{ display:grid; grid-template-columns:1.6fr 1.2fr .8fr .8fr; gap:8px; }
+  .act-grid input{ min-width:0; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:9px 12px; font-family:var(--body); font-size:.9rem; }
+  .act-grid input:focus{ outline:none; border-color:var(--steel); }
   .act-form .btn{ height:38px; }
   /* body log */
   .body-form{ display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
   .body-form .fld{ display:flex; flex-direction:column; gap:4px; }
   .body-form label{ font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--faint); font-weight:700; }
   .body-form input{ width:76px; background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:10px; padding:9px 10px; font-family:var(--body); font-size:.95rem; text-align:center; }
+  .body-form input[type=date]{ width:auto; }
   .body-form input:focus{ outline:none; border-color:var(--steel); }
   .body-form .btn{ height:38px; }
   .body-trend{ display:flex; align-items:center; gap:10px; margin-top:12px; }
@@ -762,16 +764,17 @@ function telePost(row){
 function histAll(){ try{ return JSON.parse(load('hist')||'[]'); }catch(e){ return []; } }
 function histSave(h){ if(h.length>3000) h=h.slice(-3000); save('hist', JSON.stringify(h)); }
 function histPush(row){ var h=histAll(); h.push(row); histSave(h); }
-/* Body-weight / waist entries — append (no id). */
+/* Body-weight / waist entries — append (no id). Keeps a caller-set ts (back-dating). */
 function logEvent(row){
-  row.ts = new Date().toISOString();
+  row.ts = row.ts || new Date().toISOString();
   histPush(row);
   if(!teleOn()) return;
   telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); });
 }
-/* Set completion — idempotent by id, so re-tapping the same set never double-logs. */
+/* Set completion — idempotent by id, so re-tapping the same set never double-logs.
+   Keeps a caller-set ts so activities can be logged on a past date. */
 function logSet(row){
-  row.ts = new Date().toISOString();
+  row.ts = row.ts || new Date().toISOString();
   var h=histAll(), i=-1;
   if(row.id){ for(var j=0;j<h.length;j++){ if(h[j].id===row.id){ i=j; break; } } }
   if(i>=0) h[i]=row; else h.push(row);           // replace same-id entry, else add
@@ -1107,6 +1110,8 @@ function sortByTime(rows){
   return rows.slice().sort(function(a,b){ return (a.ts||a.local_ts||'').localeCompare(b.ts||b.local_ts||''); });
 }
 function dkey(dt){ return dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2); }
+/* A <input type="date"> value ("YYYY-MM-DD") → a Date at local noon (avoids timezone day-shift). */
+function dateFromInput(v){ if(!v) return new Date(); var p=v.split('-'); return new Date(+p[0], (+p[1])-1, +p[2], 12, 0, 0); }
 /* Completed sets, with duplicates collapsed by id and any 'undo' events netted out.
    Local hist is already deduped; this matters for the append-only cloud log. */
 function setRows(rows){
@@ -1211,9 +1216,9 @@ function coachText(rows){
   var extra='';
   if(bw.length) extra+='\n\nBodyweight ('+u+', oldest → newest): '+bw.map(function(p){ return fmtDisp(p.v); }).join(' → ');
   if(wa.length) extra+='\nWaist (in): '+wa.map(function(p){ return Math.round(p.v*10)/10; }).join(' → ');
-  var acts={}; rows.forEach(function(r){ if(r.event==='activity' && r.exercise) acts[r.exercise]=(acts[r.exercise]||0)+1; });
+  var acts={}; rows.forEach(function(r){ if(r.event==='activity' && r.exercise){ var a=acts[r.exercise]||(acts[r.exercise]={n:0,min:0,mi:0}); a.n++; if(r.mins) a.min+=(+r.mins||0); if(r.dist) a.mi+=(+r.dist||0); } });
   var aks=Object.keys(acts);
-  if(aks.length) extra+='\nOther activity days: '+aks.map(function(k){ return k+'×'+acts[k]; }).join(', ');
+  if(aks.length) extra+='\nOther activity: '+aks.map(function(k){ var a=acts[k], s=k+' ×'+a.n; if(a.min) s+=', '+a.min+' min'; if(a.mi) s+=', '+(Math.round(a.mi*10)/10)+' mi'; return s; }).join('; ');
   return "I'm 25M, 83kg, 6ft. Goal: lose belly/love-handle fat while building visible muscle. "+
     "Weight logged per exercise over time ("+u+", oldest → newest). Convention: dumbbells = per-hand weight, "+
     "barbells = total bar+plates, machines = stack value:\n\n"+
@@ -1225,7 +1230,8 @@ function renderProgress(rows){
   var gym=trainedDates(rows), act=activityDates(rows), both=mergeDates(gym,act), sets=setRows(rows).length;
   var streak=currentStreak(both), week=sessionsInLastDays(both,7);
   sheetSub.textContent=sets+' set'+(sets===1?'':'s')+' logged';
-  var ACTS=['Run','Cardio','Sport','Walk','Mobility'];
+  var ACTS=['Run','Hike','Cardio','Sport','Walk','Mobility'];
+  var todayK=dkey(new Date());
   var html=''+
     '<div class="p-sum">'+
       '<div class="p-stat'+(streak>0?' hot':'')+'"><div class="n">'+streak+'</div><div class="k">Day streak</div></div>'+
@@ -1236,15 +1242,21 @@ function renderProgress(rows){
     '<div class="p-h">Consistency</div>'+heatHTML(gym,act)+
     '<div class="p-h">Log a non-gym day</div>'+
     '<div class="act-form">'+
-      ACTS.map(function(a){ return '<button class="chip act-chip" type="button" data-act="'+a+'">'+a+'</button>'; }).join('')+
-      '<input id="act-in" type="text" placeholder="Other…" maxlength="24"/>'+
-      '<button class="btn" type="button" id="act-log">Log today</button>'+
+      '<div class="chips">'+ACTS.map(function(a){ return '<button class="chip act-chip" type="button" data-act="'+a+'">'+a+'</button>'; }).join('')+'</div>'+
+      '<div class="act-grid">'+
+        '<input id="act-in" type="text" placeholder="Activity (e.g. Hike)" maxlength="24"/>'+
+        '<input id="act-date" type="date" value="'+todayK+'" max="'+todayK+'"/>'+
+        '<input id="act-min" type="text" inputmode="numeric" placeholder="min"/>'+
+        '<input id="act-dist" type="text" inputmode="decimal" placeholder="mi (opt)"/>'+
+      '</div>'+
+      '<button class="btn" type="button" id="act-log">Log activity</button>'+
     '</div>'+
     '<div class="p-h">Body — weight &amp; waist</div>'+
     '<div class="body-form">'+
       '<div class="fld"><label>Weight ('+unit()+')</label><input id="bw-in" type="text" inputmode="decimal" placeholder="—"/></div>'+
       '<div class="fld"><label>Waist (in)</label><input id="wa-in" type="text" inputmode="decimal" placeholder="—"/></div>'+
-      '<button class="btn" type="button" id="body-log">Log today</button>'+
+      '<div class="fld"><label>Date</label><input id="body-date" type="date" value="'+todayK+'" max="'+todayK+'"/></div>'+
+      '<button class="btn" type="button" id="body-log">Log</button>'+
     '</div>'+
     bodyTrendHTML(rows,'bw','Weight',unit(),function(kg){ return kgToDisp(kg); })+
     bodyTrendHTML(rows,'waist','Waist','in',function(x){ return x; })+
@@ -1252,25 +1264,32 @@ function renderProgress(rows){
     '<div class="sheet-actions"><button class="btn" type="button" id="coach-copy">📋 Copy for coach</button></div>';
   sheetBody.innerHTML=html;
 
-  // Outside-gym activity → greens today on the heatmap (one entry per activity per day).
-  function logActivity(label){
-    label=(label||'').trim(); if(!label) return false;
-    var id='act_'+label.toLowerCase().replace(/[^a-z0-9]+/g,'')+'_'+dkey(new Date());
-    logSet({ event:'activity', id:id, exercise:label });
-    loadRows(renderProgress); return true;
-  }
+  // Outside-gym activity → colors the chosen day blue. Chips fill the field; Log reads date + metrics.
+  var actIn=document.getElementById('act-in');
   Array.prototype.forEach.call(sheetBody.querySelectorAll('.act-chip'), function(b){
-    b.onclick=function(){ logActivity(b.getAttribute('data-act')); };
+    b.onclick=function(){ actIn.value=b.getAttribute('data-act'); actIn.focus(); };
   });
   var actLog=document.getElementById('act-log');
-  actLog.onclick=function(){ if(!logActivity(document.getElementById('act-in').value)) actLog.textContent='Type an activity'; };
+  actLog.onclick=function(){
+    var label=(actIn.value||'').trim();
+    if(!label){ actLog.textContent='Pick or type an activity'; return; }
+    var d=dateFromInput(document.getElementById('act-date').value);
+    var mins=parseFloat(document.getElementById('act-min').value);
+    var dist=parseFloat(document.getElementById('act-dist').value);
+    var row={ event:'activity', id:'act_'+label.toLowerCase().replace(/[^a-z0-9]+/g,'')+'_'+dkey(d),
+      exercise:label, ts:d.toISOString() };
+    if(!isNaN(mins)) row.mins=mins;
+    if(!isNaN(dist)) row.dist=dist;
+    logSet(row); actLog.textContent='✓ Logged'; loadRows(renderProgress);
+  };
 
   var logBtn=document.getElementById('body-log');
   logBtn.onclick=function(){
     var bwEl=document.getElementById('bw-in'), waEl=document.getElementById('wa-in');
+    var when=dateFromInput(document.getElementById('body-date').value).toISOString();
     var bw=parseFloat(bwEl.value), wa=parseFloat(waEl.value), any=false;
-    if(bwEl.value!=='' && !isNaN(bw)){ logEvent({ event:'bw', weight: Math.round(dispToKg(bw)*1000)/1000 }); any=true; }
-    if(waEl.value!=='' && !isNaN(wa)){ logEvent({ event:'waist', weight: Math.round(wa*10)/10 }); any=true; }
+    if(bwEl.value!=='' && !isNaN(bw)){ logEvent({ event:'bw', weight: Math.round(dispToKg(bw)*1000)/1000, ts:when }); any=true; }
+    if(waEl.value!=='' && !isNaN(wa)){ logEvent({ event:'waist', weight: Math.round(wa*10)/10, ts:when }); any=true; }
     if(any){ logBtn.textContent='✓ Logged'; loadRows(renderProgress); } else { logBtn.textContent='Enter a number'; }
   };
   var copy=document.getElementById('coach-copy');
