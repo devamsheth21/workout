@@ -417,18 +417,19 @@
 
 var DEMOS = {
   // Day 1 — push
-  benchPress:"rT7DgCr-3pg", inclineDbPress:"8iPEnn-ltC8", dbShoulderPress:"qEwKCR5JCog",
-  lateralRaise:"3VcKaXpzqRo", triPushdown:"kiuVA0gs3EI", plank:"pSHjTRCQxIw",
+  benchPress:"rT7DgCr-3pg", inclineDbPress:"8iPEnn-ltC8", dbShoulderPress:"k6tzKisR3NY",
+  lateralRaise:"Kl3LEzQ5Zqs", triPushdown:"kiuVA0gs3EI", plank:"pSHjTRCQxIw",
   // Day 2 — lower
   backSquat:"ultWZbUMPL8", dbRdl:"hu3jRvTc_po", walkingLunge:"Pbmj6xPo-Hw",
-  legCurl:"xdbEG3xGLI8", calfRaise:"lyDp3tbx3qU", hangingKnee:"Fl8rJJ7mZJM",
+  legCurl:"xdbEG3xGLI8", calfRaise:"wdOkFomQNp8", hangingKnee:"Fl8rJJ7mZJM",
   // Day 3 — core
-  bicycleCrunch:"wpRI3xBhJmo", russianTwist:"jjyR6Z1U4dA", sidePlank:"44ND4bOB-T0",
+  bicycleCrunch:"wpRI3xBhJmo", russianTwist:"aRUMRbl7KS4", sidePlank:"44ND4bOB-T0",
   // Day 4 — pull
-  latPulldown:"CAwf7n6Luuc", seatedRow:"EU7bOadUsNI", facePull:"eTCBSFlCJ_s",
+  latPulldown:"CAwf7n6Luuc", seatedRow:"EU7bOadUsNI", facePull:"IeOqdw9WI90",
   hammerCurl:"VqoFbCmRyyk", bicepCurl:"PuaJzTatIJM",
   // Day 5 — lower B / glutes
   legExtension:"uM86QE59Tgc", hipThrust:"W86oVlnLqY4", bulgarianSplit:"hiLF_pF3EJM",
+  gluteBridge:"tl6xvm4-Qk0", reverseLunge:"mJilHWIBWO8",
   hangingLegRaise:"2n4UqRIJyk4"
 };
 
@@ -574,14 +575,14 @@ var mainDays = [
      cue:"Extend fully, squeeze at the top, lower under control.",
      steps:["Set the seat so knees line up with the pivot.","Set the ankle pad just above your feet.","Extend fully and squeeze the quads at the top.","Lower slowly — don't let the stack slam."],
      avoid:"So much weight you have to swing or slam."},
-    {n:"Hip Thrust (bench + DB/bar)", sr:"3 × 10", rest:"90s", demo:"hipThrust", pose:"hipThrust", target:"Glutes · hamstrings",
-     cue:"Shoulder blades on bench, drive hips up, squeeze glutes hard.",
-     steps:["Upper back against a bench, weight across your hips.","Plant your feet flat, ~shoulder-width.","Drive through heels, push hips up to a flat tabletop.","Squeeze glutes at the top, then lower under control."],
-     avoid:"Overarching the lower back instead of using glutes."},
-    {n:"DB Bulgarian Split Squat", sr:"3 × 10/leg", rest:"75s", demo:"bulgarianSplit", pose:"bulgarian", target:"Quads · glutes (single leg)",
-     cue:"Rear foot elevated, front thigh near parallel, drive front heel.",
-     steps:["Top of one foot on a bench behind you.","Hop the front foot out so the knee stays over mid-foot.","Lower straight down until the front thigh is near parallel.","Drive up through the front heel; switch legs after all reps."],
-     avoid:"Front foot too close, forcing the knee past the toes."},
+    {n:"DB Glute Bridge (floor)", sr:"3 × 12", rest:"75s", demo:"gluteBridge", pose:"hipThrust", target:"Glutes · hamstrings",
+     cue:"Back flat on the floor, drive hips up, squeeze glutes hard at the top.",
+     steps:["Lie on your back, knees bent, feet flat hip-width.","Rest a dumbbell across your hips and hold it steady.","Drive through your heels, lift hips until knees, hips and shoulders line up.","Squeeze glutes for a beat, then lower under control."],
+     avoid:"Overarching the lower back instead of squeezing glutes."},
+    {n:"DB Reverse Lunge (stationary)", sr:"3 × 10/leg", rest:"75s", demo:"reverseLunge", pose:"lunge", target:"Quads · glutes (single leg)",
+     cue:"Step back, not forward — front knee stays over the ankle.",
+     steps:["Stand tall with a dumbbell in each hand.","Step one foot straight back, lowering until both knees bend ~90°.","Keep your torso upright and the front knee over the ankle.","Drive through the front heel to stand; finish all reps, then switch legs."],
+     avoid:"Letting the front knee cave inward or crash down."},
     {n:"DB Standing Calf Raise", sr:"3 × 15", rest:"45s", demo:"calfRaise", pose:"calfRaise", target:"Calves",
      cue:"Full stretch, full squeeze at the top — same as Day 2.",
      steps:["Balls of feet on a plate/step, holding a dumbbell.","Drop the heels for a full stretch.","Rise onto your toes as high as you can and pause.","Lower slowly back to the stretch."],
@@ -714,6 +715,8 @@ var BEGINNER = {
   legExtension:{lo:15,hi:25},
   hipThrust:{lo:20,hi:40,bar:true,note:"a bar or one heavy dumbbell"},
   bulgarianSplit:{lo:6,hi:10,each:true,note:"bodyweight first, then light dumbbells"},
+  gluteBridge:{lo:10,hi:20,note:"one dumbbell across the hips"},
+  reverseLunge:{lo:6,hi:10,each:true,note:"bodyweight first, then light dumbbells"},
   hangingLegRaise:{bw:true}
 };
 function begText(slug){
