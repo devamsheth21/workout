@@ -416,7 +416,7 @@
 var DEMOS = {
   // Day 1 — push
   benchPress:"rT7DgCr-3pg", inclineDbPress:"8iPEnn-ltC8", dbShoulderPress:"k6tzKisR3NY",
-  lateralRaise:"Kl3LEzQ5Zqs", triPushdown:"kiuVA0gs3EI", plank:"pSHjTRCQxIw",
+  lateralRaise:"Kl3LEzQ5Zqs", triPushdown:"kiuVA0gs3EI", cableFly:"y4RJDSOBEl8", plank:"pSHjTRCQxIw",
   // Day 2 — lower
   backSquat:"ultWZbUMPL8", dbRdl:"hu3jRvTc_po", walkingLunge:"Pbmj6xPo-Hw",
   legCurl:"xdbEG3xGLI8", calfRaise:"wdOkFomQNp8", hangingKnee:"Fl8rJJ7mZJM",
@@ -424,7 +424,7 @@ var DEMOS = {
   bicycleCrunch:"wpRI3xBhJmo", russianTwist:"aRUMRbl7KS4", sidePlank:"44ND4bOB-T0",
   // Day 4 — pull
   latPulldown:"CAwf7n6Luuc", seatedRow:"EU7bOadUsNI", facePull:"IeOqdw9WI90",
-  hammerCurl:"VqoFbCmRyyk", bicepCurl:"PuaJzTatIJM",
+  hammerCurl:"VqoFbCmRyyk", bicepCurl:"PuaJzTatIJM", pushUp:"EGShi0FcidE",
   // Day 5 — lower B / glutes
   legExtension:"uM86QE59Tgc", hipThrust:"W86oVlnLqY4", bulgarianSplit:"hiLF_pF3EJM",
   gluteBridge:"tl6xvm4-Qk0", reverseLunge:"mJilHWIBWO8",
@@ -481,6 +481,10 @@ var mainDays = [
      cue:"Elbows pinned to sides, extend fully, control the way back up.",
      steps:["Attach a rope to the high pulley; grab both ends.","Pin your elbows to your sides and lean in slightly.","Extend down until arms are straight, spreading the rope at the bottom.","Return only until forearms are parallel — keep tension."],
      avoid:"Letting elbows drift forward so the shoulders take over."},
+    {n:"Cable Fly (crossover)", sr:"2 × 12–15", rest:"60s", demo:"cableFly", pose:"fly", target:"Chest (stretch + squeeze)",
+     cue:"Pulleys at shoulder height, slight elbow bend — hug a big tree.",
+     steps:["Set both pulleys to ~shoulder height and grab a handle in each hand.","Step forward into a staggered stance, chest up, slight forward lean.","With a soft bend in the elbows, bring the handles together in a wide arc in front of your chest.","Squeeze the pecs hard where the handles meet, then open slowly to a full stretch."],
+     avoid:"Starting with straight arms or letting elbows drop below the wrists."},
     {n:"Plank", sr:"3 × 40–60s", rest:"30s", demo:"plank", pose:"plank", target:"Core · abs",
      cue:"Forearms + toes, straight line hips to shoulders, squeeze hard.",
      steps:["Forearms under shoulders, legs straight behind.","Straight line from heels to head — no sagging or piking.","Squeeze glutes and brace abs like bracing for a punch.","Breathe normally and hold for time."],
@@ -563,7 +567,11 @@ var mainDays = [
     {n:"DB Bicep Curl", sr:"2 × 12", rest:"45s", demo:"bicepCurl", pose:"curl", target:"Biceps",
      cue:"Palms up, full range, squeeze at the top, lower slow.",
      steps:["Dumbbells at your sides, palms facing forward.","Curl up while keeping elbows fixed at your sides.","Squeeze the biceps hard at the top.","Lower slowly all the way to straight arms."],
-     avoid:"Half-reps and using hip momentum."}
+     avoid:"Half-reps and using hip momentum."},
+    {n:"Push-up", sr:"2 × to failure", rest:"60s", demo:"pushUp", pose:"pushup", target:"Chest · front delts · triceps",
+     cue:"Straight line head to heels, elbows ~45°, chest nearly to the floor.",
+     steps:["Hands slightly wider than shoulders, screw your hands into the floor.","Shoulders down away from ears, brace core, straight line head to heels.","Lower with elbows ~45° from your body until your chest nearly touches the floor.","Press up, spreading the shoulder blades apart at the top."],
+     avoid:"Flaring elbows to 90° or letting the hips sag."}
   ],
   finisher:"10 min steady bike or StairMaster, moderate pace." },
 
@@ -695,6 +703,7 @@ var BEGINNER = {
   dbShoulderPress:{lo:7.5,hi:10,each:true},
   lateralRaise:{lo:4,hi:6,each:true},
   triPushdown:{lo:10,hi:16},
+  cableFly:{lo:8,hi:14},
   plank:{bw:true},
   backSquat:{lo:20,hi:40,bar:true,note:"empty bar first, add plates as form holds"},
   dbRdl:{lo:10,hi:16,each:true},
@@ -710,6 +719,7 @@ var BEGINNER = {
   facePull:{lo:10,hi:16},
   hammerCurl:{lo:7.5,hi:10,each:true},
   bicepCurl:{lo:6,hi:9,each:true},
+  pushUp:{bw:true},
   legExtension:{lo:15,hi:25},
   hipThrust:{lo:20,hi:40,bar:true,note:"a bar or one heavy dumbbell"},
   bulgarianSplit:{lo:6,hi:10,each:true,note:"bodyweight first, then light dumbbells"},
