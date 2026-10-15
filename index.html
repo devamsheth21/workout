@@ -666,8 +666,20 @@ var twoDays = [
   finisher:"Optional: 2 × 20 Bicycle Crunch, slow and controlled." }
 ];
 
+/* ---------------- 4-DAY PLAN ----------------
+   The 5-day lifting days, minus the standalone Cardio day — cardio lives in
+   the finishers instead. Day objects are shared with mainDays (all state is
+   keyed by plan id + day key strings), so form cues/demos stay in sync. */
+var fourDays = [
+  Object.assign({}, mainDays[0], { key:"p1", label:"Day 1" }),
+  Object.assign({}, mainDays[1], { key:"p2", label:"Day 2" }),
+  Object.assign({}, mainDays[3], { key:"p3", label:"Day 3" }),
+  Object.assign({}, mainDays[4], { key:"p4", label:"Day 4" })
+];
+
 var PLANS = [
   { id:"main",  label:"5-Day",  sub:"Full split",   days:mainDays },
+  { id:"four",  label:"4-Day",  sub:"No cardio day", days:fourDays },
   { id:"three", label:"3-Day",  sub:"+ sport days", days:threeDays },
   { id:"two",   label:"2-Day",  sub:"+ sport days", days:twoDays }
 ];
