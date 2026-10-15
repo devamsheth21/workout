@@ -665,19 +665,25 @@ var twoDays = [
 ];
 
 /* ---------------- 4-DAY PLAN ----------------
-   The 5-day lifting days, minus the standalone Cardio day — cardio lives in
-   the finishers instead. Day objects are shared with mainDays (all state is
-   keyed by plan id + day key strings), so form cues/demos stay in sync. */
+   Devam's preferred mix: 2 upper days (push + pull), 1 merged lower day,
+   1 cardio + core day. Days/items are shared with mainDays (all state is
+   keyed by plan id + day key strings), so form cues/demos stay in sync.
+   The lower day merges the best of Lower A + Lower B: squat, RDL, leg
+   extension, glute bridge, leg curl, calf raise. */
 var fourDays = [
   Object.assign({}, mainDays[0], { key:"p1", label:"Day 1" }),
-  Object.assign({}, mainDays[1], { key:"p2", label:"Day 2" }),
+  { key:"p2", label:"Day 2", sub:"Lower", title:"Lower Body (full)",
+    note:"Warm-up: 5 min bike + bodyweight squats ×15",
+    items:[ mainDays[1].items[0], mainDays[1].items[1], mainDays[4].items[0],
+            mainDays[4].items[1], mainDays[1].items[3], mainDays[1].items[4] ],
+    finisher:"10 min incline treadmill walk — steady pace." },
   Object.assign({}, mainDays[3], { key:"p3", label:"Day 3" }),
-  Object.assign({}, mainDays[4], { key:"p4", label:"Day 4" })
+  Object.assign({}, mainDays[2], { key:"p4", label:"Day 4" })
 ];
 
 var PLANS = [
   { id:"main",  label:"5-Day",  sub:"Full split",   days:mainDays },
-  { id:"four",  label:"4-Day",  sub:"No cardio day", days:fourDays },
+  { id:"four",  label:"4-Day",  sub:"2 upper · lower · cardio+core", days:fourDays },
   { id:"three", label:"3-Day",  sub:"+ sport days", days:threeDays },
   { id:"two",   label:"2-Day",  sub:"+ sport days", days:twoDays }
 ];
