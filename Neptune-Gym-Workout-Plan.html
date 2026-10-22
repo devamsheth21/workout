@@ -335,6 +335,13 @@
   .heat-key i.act{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; }
   /* non-gym activity log */
   .act-form{ display:flex; flex-direction:column; gap:10px; }
+  /* gym-visit backfill */
+  .bf-note{ font-size:.78rem; color:var(--faint); margin:2px 0 8px; }
+  .bf-list{ max-height:230px; overflow-y:auto; border:1px solid var(--line2); border-radius:10px; padding:10px; margin-bottom:10px; }
+  .bf-wk{ font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); margin:10px 0 6px; }
+  .bf-wk:first-child{ margin-top:0; }
+  .bf-day{ display:inline-flex; align-items:center; gap:6px; font-size:.82rem; padding:6px 9px; margin:0 6px 6px 0; border:1px solid var(--line2); border-radius:8px; cursor:pointer; }
+  .bf-day input{ width:15px; height:15px; accent-color:#2fae72; }
   .act-form .chip{ background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:999px; padding:8px 14px; font-family:var(--body); font-size:.85rem; cursor:pointer; }
   .act-form .chip:active{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; color:#fff; }
   .act-grid{ display:grid; grid-template-columns:1.6fr 1.2fr .8fr .8fr; gap:8px; }
@@ -1088,7 +1095,7 @@ function showDay(plan, dayKey){
   var tab=document.getElementById('tab-'+plan.id+'-'+dayKey);
   if(sec) sec.classList.add('active');
   if(tab){ tab.classList.add('active'); tab.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'}); }
-  save('lastday_'+plan.id, dayKey);
+  save('lastday_'+plan.id, dayKey); try{ logVisit(dkey(new Date()), plan.id, dayKey); }catch(e){}
 }
 
 function renderModes(){
@@ -1166,8 +1173,25 @@ function bodySeries(rows, kind){
   return sortByTime(rows.filter(function(r){ return r.event===kind && r.weight!=null && !isNaN(+r.weight); }))
     .map(function(r){ return { t:(r.ts||r.local_ts), v:+r.weight }; });
 }
-function trainedDates(rows){   // gym days (a strength set was logged)
-  var s={}; setRows(rows).forEach(function(r){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; }); return s;
+/* ---------------- gym visits (hybrid log) ----------------
+   Opening a workout day records a visit for today — no sets needed.
+   Per-set logging stays optional for charts/PRs. Visits count as gym days
+   in the heatmap/streak but never touch set counts or coach export. */
+function visitId(k){ return 'visit_'+k; }
+function hasVisit(k){ var id=visitId(k), h=histAll(); for(var i=0;i<h.length;i++) if(h[i].id===id) return true; return false; }
+function logVisit(k, planId, dayKey){
+  if(hasVisit(k)) return false;
+  var d=dateFromInput(k); // local noon — avoids timezone day-shift
+  var row={event:'visit', id:visitId(k), ts:d.toISOString()};
+  if(planId) row.plan=planId;
+  if(dayKey) row.day=dayKey;
+  histPush(row);
+  if(teleOn()) telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); });
+  return true;
+}
+function unlogVisit(k){ var id=visitId(k); histSave(histAll().filter(function(r){ return r.id!==id; })); }
+function trainedDates(rows){   // gym days: a set was logged OR a visit was recorded (hybrid log)
+  var s={}; setRows(rows).forEach(function(r){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; }); rows.forEach(function(r){ if(r.event==='visit'){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; } }); return s;
 }
 function activityDates(rows){   // outside-the-gym days (run, sport, cardio…)
   var s={}; rows.forEach(function(r){ if(r.event==='activity'){ var t=r.ts||r.local_ts; if(t) s[dkey(new Date(t))]=1; } }); return s;
@@ -1282,6 +1306,10 @@ function renderProgress(rows){
       '</div>'+
       '<button class="btn" type="button" id="act-log">Log activity</button>'+
     '</div>'+
+    '<div class="p-h">Backfill gym visits</div>'+
+    '<div class="bf-note">Tick the days you trained since Aug 28. Untick the few you skipped, then save. Visits count toward your streak.</div>'+
+    '<div id="bf-list" class="bf-list"></div>'+
+    '<button class="btn" type="button" id="bf-save">Save visits</button>'+
     '<div class="p-h">Body — weight &amp; waist</div>'+
     '<div class="body-form">'+
       '<div class="fld"><label>Weight ('+unit()+')</label><input id="bw-in" type="text" inputmode="decimal" placeholder="—"/></div>'+
@@ -1300,6 +1328,35 @@ function renderProgress(rows){
   Array.prototype.forEach.call(sheetBody.querySelectorAll('.act-chip'), function(b){
     b.onclick=function(){ actIn.value=b.getAttribute('data-act'); actIn.focus(); };
   });
+  /* Backfill gym visits: past weekdays checked = trained */
+  (function(){
+    var bfList=document.getElementById('bf-list'); if(!bfList) return;
+    var WD=['Su','Mo','Tu','We','Th','Fr','Sa'], MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var dc=new Date(2026,7,28); dc.setHours(12,0,0,0);
+    var today=new Date(); today.setHours(12,0,0,0);
+    var h='', lastMk='';
+    for(var d=new Date(dc); d<=today; d.setDate(d.getDate()+1)){
+      var dow=d.getDay(); if(dow===0||dow===6) continue;
+      var k=dkey(d);
+      var mon=new Date(d); mon.setDate(mon.getDate()-((dow+6)%7));
+      var mk=dkey(mon);
+      if(mk!==lastMk){ lastMk=mk; h+='<div class="bf-wk">Week of '+MON[mon.getMonth()]+' '+mon.getDate()+'</div>'; }
+      var checked = hasVisit(k) || d<today;
+      h+='<label class="bf-day"><input type="checkbox" data-k="'+k+'"'+(checked?' checked':'')+'>'+WD[dow]+' '+d.getDate()+'</label>';
+    }
+    bfList.innerHTML=h||'<div class="bf-note">Nothing to backfill.</div>';
+    var bfSave=document.getElementById('bf-save');
+    bfSave.onclick=function(){
+      var n=0;
+      Array.prototype.forEach.call(bfList.querySelectorAll('input[type=checkbox]'), function(b){
+        var k=b.getAttribute('data-k');
+        if(b.checked){ if(logVisit(k)) n++; }
+        else if(hasVisit(k)){ unlogVisit(k); n++; }
+      });
+      bfSave.textContent = n ? ('Saved '+n+' change'+(n===1?'':'s')) : 'No changes';
+      setTimeout(function(){ loadRows(renderProgress); }, 800);
+    };
+  })();
   var actLog=document.getElementById('act-log');
   actLog.onclick=function(){
     var label=(actIn.value||'').trim();
