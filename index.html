@@ -342,6 +342,12 @@
   .bf-wk:first-child{ margin-top:0; }
   .bf-day{ display:inline-flex; align-items:center; gap:6px; font-size:.82rem; padding:6px 9px; margin:0 6px 6px 0; border:1px solid var(--line2); border-radius:8px; cursor:pointer; }
   .bf-day input{ width:15px; height:15px; accent-color:#2fae72; }
+  /* visit auto-log toast */
+  .visit-toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:76px; z-index:9999;
+    background:var(--ink); color:var(--bg); font-size:.82rem; padding:10px 14px; border-radius:999px;
+    display:flex; align-items:center; gap:10px; box-shadow:0 4px 18px rgba(0,0,0,.25); }
+  .visit-toast button{ background:none; border:none; color:#7ee2a8; font-weight:800; font-size:.82rem;
+    cursor:pointer; font-family:var(--body); padding:2px 4px; }
   .act-form .chip{ background:var(--bg); color:var(--ink); border:1px solid var(--line2); border-radius:999px; padding:8px 14px; font-family:var(--body); font-size:.85rem; cursor:pointer; }
   .act-form .chip:active{ background:linear-gradient(180deg,#4d8dff,#2f6ae0); border-color:transparent; color:#fff; }
   .act-grid{ display:grid; grid-template-columns:1.6fr 1.2fr .8fr .8fr; gap:8px; }
@@ -1097,7 +1103,7 @@ function showDay(plan, dayKey){
   var tab=document.getElementById('tab-'+plan.id+'-'+dayKey);
   if(sec) sec.classList.add('active');
   if(tab){ tab.classList.add('active'); tab.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'}); }
-  save('lastday_'+plan.id, dayKey); try{ logVisit(dkey(new Date()), plan.id, dayKey); }catch(e){}
+  save('lastday_'+plan.id, dayKey); try{ if(logVisit(dkey(new Date()), plan.id, dayKey)) showVisitToast(); }catch(e){}
 }
 
 function renderModes(){
@@ -1190,6 +1196,16 @@ function logVisit(k, planId, dayKey){
   histPush(row);
   if(teleOn()) telePost(row).catch(function(){ var q=teleQueue(); q.push(row); teleQueueSet(q); });
   return true;
+}
+/* Toast with Undo when a visit is auto-logged (covers "opened app but not at gym") */
+function showVisitToast(){
+  var old=document.getElementById('visit-toast'); if(old) old.remove();
+  var t=document.createElement('div');
+  t.id='visit-toast'; t.className='visit-toast';
+  t.innerHTML='<span>Visit logged for today</span><button type="button">Undo</button>';
+  t.querySelector('button').onclick=function(){ try{ unlogVisit(dkey(new Date())); }catch(e){} t.remove(); };
+  document.body.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.remove(); }, 6000);
 }
 function unlogVisit(k){ var id=visitId(k); histSave(histAll().filter(function(r){ return r.id!==id; })); }
 function trainedDates(rows){   // gym days: a set was logged OR a visit was recorded (hybrid log)
